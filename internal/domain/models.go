@@ -1,0 +1,140 @@
+package domain
+
+// StoreCategory defines the vertical of a store.
+type StoreCategory string
+
+const (
+	CategorySupermercados StoreCategory = "supermercados"
+	CategoryFarmacias     StoreCategory = "farmacias"
+	CategoryElectronica   StoreCategory = "electronica"
+	CategoryVarios        StoreCategory = "varios"
+)
+
+// StoreInfo describes a retail chain supported by Lita.
+type StoreInfo struct {
+	ID            string        `json:"id"`
+	Name          string        `json:"name"`
+	Category      StoreCategory `json:"category"`
+	Engine        string        `json:"engine"` // "vtex" | "scraper"
+	BaseURL       string        `json:"baseUrl,omitempty"`
+	DefaultSeller string        `json:"defaultSeller,omitempty"`
+	SalesChannel  string        `json:"salesChannel,omitempty"`
+	SupportsEAN   bool          `json:"supportsEan"`
+	BadgeColor    string        `json:"badgeColor"`
+	EnabledByDef  bool          `json:"enabledByDefault"`
+}
+
+// Benefit represents the structured discount benefit (e.g. multibuy 3x2, percentage 25%).
+type Benefit struct {
+	Type        string   `json:"type"`                  // "multibuy" | "percentage" | "second_unit" | "fixed"
+	Label       string   `json:"label,omitempty"`       // e.g. "3x2", "2da al 70%"
+	MinQty      int      `json:"minQty,omitempty"`      // e.g. 3
+	UnitPrice   float64  `json:"unitPrice,omitempty"`   // effective unit price under promo
+	Percentage  float64  `json:"percentage,omitempty"`  // e.g. 25
+	SecondUnit  float64  `json:"secondUnit,omitempty"`  // e.g. 70
+}
+
+// Discount represents a store or payment/bank promotion attached to a product.
+type Discount struct {
+	ID             string  `json:"id"`
+	Store          string  `json:"store"`
+	Kind           string  `json:"kind"` // "store" | "bank" | "wallet" | "club"
+	Benefit        Benefit `json:"benefit"`
+	Headline       string  `json:"headline"`
+	ConditionsText string  `json:"conditionsText,omitempty"`
+	Channel        string  `json:"channel,omitempty"`
+}
+
+// UnitMeasure holds the parsed net weight/volume and calculated reference price ($/kg or $/L).
+type UnitMeasure struct {
+	Kind           string  `json:"kind"`           // "volume" | "weight"
+	UnitAmount     float64 `json:"unitAmount"`     // in ml or g per single unit
+	Pack           int     `json:"pack"`           // number of units in pack (default 1)
+	TotalAmount    float64 `json:"totalAmount"`    // UnitAmount * Pack (in ml or g)
+	Label          string  `json:"label"`          // e.g. "1 L", "500 g", "473 ml x 6"
+	ReferencePrice float64 `json:"referencePrice"` // Price per 1 Kg or 1 Liter
+	ReferenceUnit  string  `json:"referenceUnit"`  // "L" or "kg"
+}
+
+// Product is the normalized product representation across all stores.
+type Product struct {
+	ID                   string       `json:"id"`
+	Name                 string       `json:"name"`
+	Brand                string       `json:"brand,omitempty"`
+	Supermarket          string       `json:"supermarket"`
+	Price                float64      `json:"price"`
+	ListPrice            float64      `json:"listPrice"`
+	PriceWithoutMultiBuy float64      `json:"priceWithoutMultiBuy,omitempty"`
+	MultiBuyPrice        float64      `json:"multiBuyPrice,omitempty"`
+	MultiBuyMinQty       int          `json:"multiBuyMinQty,omitempty"`
+	Link                 string       `json:"link"`
+	AddToCartLink        string       `json:"addToCartLink,omitempty"`
+	Image                string       `json:"image"`
+	EAN                  string       `json:"ean,omitempty"`
+	NormalizedEAN        string       `json:"normalizedEan,omitempty"`
+	SKU                  string       `json:"sku,omitempty"`
+	Reference            string       `json:"reference,omitempty"`
+	CategoryPath         []string     `json:"categoryPath,omitempty"`
+	Discounts            []Discount   `json:"discounts,omitempty"`
+	IsAvailable          bool         `json:"isAvailable"`
+	RelevanceScore       float64      `json:"relevanceScore,omitempty"`
+	ProximityScore       float64      `json:"proximityScore,omitempty"`
+	UnitMeasure          *UnitMeasure `json:"unitMeasure,omitempty"`
+	ProviderSource       string       `json:"providerSource,omitempty"` // "vtex_direct" | "comprabien_action"
+}
+
+// StoreOffer represents one store's offer inside a grouped product comparison.
+type StoreOffer struct {
+	Store       string   `json:"store"`
+	Price       float64  `json:"price"`
+	ListPrice   float64  `json:"listPrice"`
+	IsAvailable bool     `json:"isAvailable"`
+	DiffPct     float64  `json:"diffPct"` // % difference vs cheapest offer in group
+	Product     Product  `json:"product"`
+}
+
+// ProductGroup groups identical products (by normalized EAN) across multiple stores.
+type ProductGroup struct {
+	GroupKey       string       `json:"groupKey"` // "ean:<normalized>" or "<store>:<id>"
+	EAN            string       `json:"ean,omitempty"`
+	Title          string       `json:"title"`
+	Brand          string       `json:"brand,omitempty"`
+	Image          string       `json:"image"`
+	UnitMeasure    *UnitMeasure `json:"unitMeasure,omitempty"`
+	BestPrice      float64      `json:"bestPrice"`
+	BestStore      string       `json:"bestStore"`
+	MaxPrice       float64      `json:"maxPrice"`
+	AvgPrice       float64      `json:"avgPrice"`
+	MaxSavingPct   float64      `json:"maxSavingPct"` // % saved buying at BestStore vs MaxPrice
+	StoreCount     int          `json:"storeCount"`
+	Offers         []StoreOffer `json:"offers"` // sorted by Price ascending
+}
+
+// StoreTiming tracks the latency and status of each store in a fan-out search.
+type StoreTiming struct {
+	Store      string `json:"store"`
+	Status     string `json:"status"` // "ok" | "cached" | "empty" | "timeout" | "error"
+	Count      int    `json:"count"`
+	DurationMs int64  `json:"durationMs"`
+	Source     string `json:"source,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+// SearchResponse is returned by GET /api/search and GET /api/ean/{ean}.
+type SearchResponse struct {
+	Query        string               `json:"query"`
+	ExpandedFrom string               `json:"expandedFrom,omitempty"`
+	Mode         string               `json:"mode"` // "text" | "ean"
+	TotalGroups  int                  `json:"totalGroups"`
+	TotalItems   int                  `json:"totalItems"`
+	DurationMs   int64                `json:"durationMs"`
+	Groups       []ProductGroup       `json:"groups"`
+	ByStore      map[string][]Product `json:"byStore"`
+	StoreTimings []StoreTiming        `json:"storeTimings"`
+}
+
+// BranchSelection holds the selected sellerId and regionId for a specific store.
+type BranchSelection struct {
+	SellerID string `json:"sellerId,omitempty"`
+	RegionID string `json:"regionId,omitempty"`
+}

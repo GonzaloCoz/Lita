@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lita — Buscador & Auditor de Precios (Go Backend)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              500: '#10b981',
+              600: '#059669',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.3); border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col selection:bg-emerald-500/30">
+
+  <!-- Top Header -->
+  <header class="border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="h-8 w-8 rounded-lg bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-lg">
+          L
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base tracking-tight text-white">Lita Engine</h1>
+            <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Go 1.24 Fan-Out API</span>
+          </div>
+          <p class="text-xs text-zinc-400">Buscador multi-supermercado en tiempo real (Texto y EAN)</p>
+        </div>
+      </div>
+
+      <!-- Postal Code / Branch Selector + JSON Inspector Toggle -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs gap-1.5">
+          <span class="text-zinc-400">CP:</span>
+          <input id="cpInput" type="text" placeholder="Ej: 1425" maxlength="8"
+            class="w-16 bg-transparent text-zinc-100 focus:outline-none font-mono text-xs" />
+          <button id="btnApplyCp" type="button"
+            class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition">
+            Sucursales
+          </button>
+        </div>
+
+        <label class="flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 cursor-pointer hover:border-zinc-700">
+          <input id="chkDirectVtex" type="checkbox" class="rounded accent-emerald-500" />
+          <span>VTEX Directo</span>
+        </label>
+
+        <label class="flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 cursor-pointer hover:border-zinc-700">
+          <input id="chkForceRefresh" type="checkbox" class="rounded accent-emerald-500" />
+          <span>Sin Caché</span>
+        </label>
+
+        <button id="btnToggleJson" type="button"
+          class="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs font-mono text-zinc-300 transition">
+          { } Ver JSON
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-1 flex flex-col gap-5">
+
+    <!-- Search Bar + Quick Presets -->
+    <section class="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 shadow-lg">
+      <form id="searchForm" class="flex flex-col sm:flex-row gap-2.5">
+        <div class="relative flex-1">
+          <input id="searchInput" type="text" required autofocus
+            placeholder="Buscá un producto (ej: leche entera, yerba playadito, coca cola) o código EAN (ej: 7790742363107)..."
+            class="w-full h-12 rounded-xl bg-zinc-950 border border-zinc-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-4 pr-24 text-sm text-white placeholder-zinc-500 outline-none transition" />
+          <span id="queryModeBadge"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
+            TEXTO
+          </span>
+        </div>
+        <button id="btnSearch" type="submit"
+          class="h-12 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-sm transition flex items-center justify-center gap-2 shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span>Buscar Precios</span>
+        </button>
+      </form>
+
+      <!-- Quick Test Chips -->
+      <div class="mt-3 flex items-center gap-2 flex-wrap text-xs">
+        <span class="text-zinc-500">Pruebas rápidas:</span>
+        <button type="button" data-quick="leche entera" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🥛 leche entera</button>
+        <button type="button" data-quick="yerba playadito 1kg" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🧉 yerba playadito 1kg</button>
+        <button type="button" data-quick="coca cola 2.25" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🥤 coca cola 2.25</button>
+        <button type="button" data-quick="aceite natura 1.5" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🌻 aceite natura 1.5</button>
+        <button type="button" data-quick="7790742363107" class="quick-btn px-2.5 py-1 rounded-full bg-emerald-950/50 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-300 font-mono transition">🏷️ EAN: 7790742363107</button>
+        <button type="button" data-quick="7790895000997" class="quick-btn px-2.5 py-1 rounded-full bg-emerald-950/50 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-300 font-mono transition">🏷️ EAN: 7790895000997</button>
+      </div>
+
+      <!-- Store Filter Chips -->
+      <div class="mt-4 pt-3 border-t border-zinc-800/70">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-medium text-zinc-400">Supermercados y Cadenas a consultar:</span>
+          <div class="flex gap-2 text-xs">
+            <button id="btnSelectSuper" type="button" class="text-emerald-400 hover:underline">Principales</button>
+            <span class="text-zinc-700">·</span>
+            <button id="btnSelectAll" type="button" class="text-zinc-400 hover:underline">Todos</button>
+            <span class="text-zinc-700">·</span>
+            <button id="btnSelectNone" type="button" class="text-zinc-400 hover:underline">Ninguno</button>
+          </div>
+        </div>
+        <div id="storeChipsContainer" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <!-- Branch resolution status banner -->
+      <div id="branchBanner" class="hidden mt-3 pt-2.5 border-t border-zinc-800/60 text-xs text-emerald-400 font-mono"></div>
+    </section>
+
+    <!-- Telemetry & Controls Bar -->
+    <section id="telemetrySection" class="hidden flex-col gap-3 bg-zinc-900/40 border border-zinc-800/70 rounded-xl p-3.5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div id="summaryStats" class="text-xs text-zinc-300 flex items-center gap-3 flex-wrap"></div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Local Filter -->
+          <input id="localFilterInput" type="text" placeholder="Filtrar resultados..."
+            class="h-8 rounded-lg bg-zinc-950 border border-zinc-800 px-3 text-xs text-zinc-200 placeholder-zinc-500 focus:border-emerald-500 outline-none" />
+
+          <!-- View Mode -->
+          <div class="inline-flex rounded-lg border border-zinc-800 bg-zinc-950 p-0.5 text-xs">
+            <button type="button" data-view="grouped" class="view-btn px-2.5 py-1 rounded-md bg-zinc-800 text-white font-medium">Agrupado (EAN)</button>
+            <button type="button" data-view="flat" class="view-btn px-2.5 py-1 rounded-md text-zinc-400 hover:text-white">Individual</button>
+          </div>
+
+          <!-- Sort Selector -->
+          <select id="sortSelect" class="h-8 rounded-lg bg-zinc-950 border border-zinc-800 px-2.5 text-xs text-zinc-200 outline-none focus:border-emerald-500">
+            <option value="relevance">Orden: Comparación (Multi-Súper)</option>
+            <option value="price_asc">Precio: Menor a Mayor</option>
+            <option value="price_desc">Precio: Mayor a Menor</option>
+            <option value="unit_asc">Precio x Kg/Litro: Menor a Mayor</option>
+            <option value="savings_desc">Mayor % de Ahorro entre Súpers</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Per-Store Latency Pills -->
+      <div id="storeTimingsBar" class="flex flex-wrap gap-1.5 pt-2 border-t border-zinc-800/60"></div>
+    </section>
+
+    <!-- Loading Skeleton -->
+    <div id="loadingState" class="hidden py-16 flex-col items-center justify-center gap-3 text-center">
+      <div class="w-10 h-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></div>
+      <p class="text-sm font-medium text-zinc-200">Consultando supermercados en paralelo con goroutines...</p>
+      <p class="text-xs text-zinc-500">Unificando códigos EAN, promociones por cantidad y precios por Kg/Litro</p>
+    </div>
+
+    <!-- Raw JSON Drawer -->
+    <section id="jsonDrawer" class="hidden bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-mono font-semibold text-emerald-400">Respuesta cruda del Backend (GET /api/search)</span>
+        <button id="btnCopyJson" type="button" class="text-xs px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200">Copiar JSON</button>
+      </div>
+      <pre id="jsonOutput" class="text-[11px] font-mono text-zinc-300 bg-zinc-950 p-3 rounded-lg overflow-x-auto max-h-96"></pre>
+    </section>
+
+    <!-- Results Grid -->
+    <section id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-12"></section>
+  </main>
+
+  <script>
+    const state = {
+      stores: [],
+      selectedStores: new Set(),
+      branchSelections: {}, // { StoreName: sellerId }
+      lastResponse: null,
+      viewMode: 'grouped', // 'grouped' | 'flat'
+      activeStoreFilter: 'ALL',
+    };
+
+    const fmtARS = new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      maximumFractionDigits: 0
+    });
+
+    const el = id => document.getElementById(id);
+
+    // Detect if input is EAN-8 or EAN-13
+    el('searchInput').addEventListener('input', e => {
+      const val = e.target.value.trim().replace(/\D/g, '');
+      const isEan = (val.length === 8 || val.length === 13) && /^\d+$/.test(e.target.value.trim());
+      const badge = el('queryModeBadge');
+      if (isEan) {
+        badge.textContent = 'EAN BARCODE';
+        badge.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+      } else {
+        badge.textContent = 'TEXTO';
+        badge.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-400';
+      }
+    });
+
+    async function loadStores() {
+      try {
+        const res = await fetch('/api/stores');
+        const data = await res.json();
+        state.stores = data.stores || [];
+        state.selectedStores.clear();
+        state.stores.forEach(s => {
+          if (s.enabledByDefault) state.selectedStores.add(s.name);
+        });
+        renderStoreChips();
+      } catch (err) {
+        console.error('Error cargando tiendas:', err);
+      }
+    }
+
+    function renderStoreChips() {
+      const container = el('storeChipsContainer');
+      container.innerHTML = '';
+      state.stores.forEach(s => {
+        const active = state.selectedStores.has(s.name);
+        const sellerId = state.branchSelections[s.name];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `px-2.5 py-1 rounded-lg text-xs font-medium border transition flex items-center gap-1.5 ${
+          active
+            ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
+            : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+        }`;
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full" style="background:${s.badgeColor || '#10b981'}"></span>
+          <span>${s.name}</span>
+          ${sellerId ? `<span class="text-[10px] font-mono text-emerald-400">(${sellerId.slice(-6)})</span>` : ''}
+        `;
+        btn.addEventListener('click', () => {
+          if (state.selectedStores.has(s.name)) {
+            state.selectedStores.delete(s.name);
+          } else {
+            state.selectedStores.add(s.name);
+          }
+          renderStoreChips();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    el('btnSelectSuper').addEventListener('click', () => {
+      state.selectedStores.clear();
+      state.stores.forEach(s => { if (s.enabledByDefault) state.selectedStores.add(s.name); });
+      renderStoreChips();
+    });
+    el('btnSelectAll').addEventListener('click', () => {
+      state.stores.forEach(s => state.selectedStores.add(s.name));
+      renderStoreChips();
+    });
+    el('btnSelectNone').addEventListener('click', () => {
+      state.selectedStores.clear();
+      renderStoreChips();
+    });
+
+    // Resolve branches by Postal Code
+    el('btnApplyCp').addEventListener('click', async () => {
+      const cp = el('cpInput').value.trim();
+      if (!cp) return;
+      const banner = el('branchBanner');
+      banner.classList.remove('hidden');
+      banner.textContent = `Buscando sucursales para CP ${cp}...`;
+      try {
+        const res = await fetch(`/api/branches?cp=${encodeURIComponent(cp)}`);
+        const data = await res.json();
+        const byStore = data.sellersByStore || {};
+        const picked = [];
+        Object.entries(byStore).forEach(([store, sellers]) => {
+          if (Array.isArray(sellers) && sellers.length > 0 && sellers[0].id) {
+            state.branchSelections[store] = sellers[0].id;
+            picked.push(`${store}: ${sellers[0].id}`);
+          }
+        });
+        renderStoreChips();
+        banner.textContent = picked.length > 0
+          ? `✓ Sucursales aplicadas (CP ${cp}): ${picked.join(' | ')}`
+          : `Sin sucursales específicas para CP ${cp}; usando sucursales generales.`;
+      } catch (e) {
+        banner.textContent = `Error consultando sucursales: ${e.message}`;
+      }
+    });
+
+    // Quick buttons
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el('searchInput').value = btn.dataset.quick;
+        el('searchInput').dispatchEvent(new Event('input'));
+        runSearch();
+      });
+    });
+
+    // View mode toggle
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.viewMode = btn.dataset.view;
+        document.querySelectorAll('.view-btn').forEach(b => {
+          b.className = b.dataset.view === state.viewMode
+            ? 'view-btn px-2.5 py-1 rounded-md bg-zinc-800 text-white font-medium'
+            : 'view-btn px-2.5 py-1 rounded-md text-zinc-400 hover:text-white';
+        });
+        renderResults();
+      });
+    });
+
+    el('sortSelect').addEventListener('change', () => {
+      if (el('searchInput').value.trim()) runSearch();
+    });
+    el('localFilterInput').addEventListener('input', () => renderResults());
+
+    el('btnToggleJson').addEventListener('click', () => {
+      el('jsonDrawer').classList.toggle('hidden');
+    });
+    el('btnCopyJson').addEventListener('click', () => {
+      if (!state.lastResponse) return;
+      navigator.clipboard.writeText(JSON.stringify(state.lastResponse, null, 2));
+      el('btnCopyJson').textContent = '¡Copiado!';
+      setTimeout(() => { el('btnCopyJson').textContent = 'Copiar JSON'; }, 1500);
+    });
+
+    el('searchForm').addEventListener('submit', e => {
+      e.preventDefault();
+      runSearch();
+    });
+
+    async function runSearch() {
+      const q = el('searchInput').value.trim();
+      if (!q) return;
+
+      const params = new URLSearchParams();
+      params.set('q', q);
+      if (state.selectedStores.size > 0) {
+        params.set('stores', Array.from(state.selectedStores).join(','));
+      }
+      const cp = el('cpInput').value.trim();
+      if (cp) params.set('cp', cp);
+      params.set('sort', el('sortSelect').value);
+      if (el('chkDirectVtex').checked) params.set('direct', '1');
+      if (el('chkForceRefresh').checked) params.set('refresh', '1');
+
+      Object.entries(state.branchSelections).forEach(([store, sellerId]) => {
+        if (sellerId) params.set(`seller_${store}`, sellerId);
+      });
+
+      el('loadingState').classList.remove('hidden');
+      el('loadingState').classList.add('flex');
+      el('resultsGrid').innerHTML = '';
+      state.activeStoreFilter = 'ALL';
+
+      try {
+        const res = await fetch(`/api/search?${params.toString()}`);
+        const data = await res.json();
+        state.lastResponse = data;
+
+        el('jsonOutput').textContent = JSON.stringify(data, null, 2);
+        renderTelemetry(data);
+        renderResults();
+      } catch (err) {
+        el('resultsGrid').innerHTML = `
+          <div class="col-span-full bg-red-950/30 border border-red-800/50 rounded-xl p-6 text-center text-sm text-red-300">
+            Error al consultar el backend: ${err.message}
+          </div>
+        `;
+      } finally {
+        el('loadingState').classList.add('hidden');
+        el('loadingState').classList.remove('flex');
+      }
+    }
+
+    function renderTelemetry(data) {
+      const sec = el('telemetrySection');
+      sec.classList.remove('hidden');
+      sec.classList.add('flex');
+
+      const multiCount = (data.groups || []).filter(g => g.storeCount > 1).length;
+      el('summaryStats').innerHTML = `
+        <span>Modo: <strong class="text-emerald-400 uppercase font-mono">${data.mode}</strong></span>
+        <span>·</span>
+        <span>Productos únicos: <strong class="text-white">${data.totalGroups}</strong> (${data.totalItems} ofertas totales)</span>
+        <span>·</span>
+        <span>Coincidencias exactas EAN en +2 súpers: <strong class="text-emerald-400">${multiCount}</strong></span>
+        <span>·</span>
+        <span>Tiempo total: <strong class="font-mono text-white">${data.durationMs} ms</strong></span>
+      `;
+
+      const bar = el('storeTimingsBar');
+      bar.innerHTML = '';
+
+      // "ALL" filter pill
+      const allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = `px-2.5 py-1 rounded-md text-xs font-mono transition border ${
+        state.activeStoreFilter === 'ALL'
+          ? 'bg-emerald-500 text-zinc-950 font-bold border-emerald-400'
+          : 'bg-zinc-950 text-zinc-300 border-zinc-800 hover:border-zinc-700'
+      }`;
+      allBtn.textContent = `Todos (${data.totalItems})`;
+      allBtn.onclick = () => {
+        state.activeStoreFilter = 'ALL';
+        renderTelemetry(state.lastResponse);
+        renderResults();
+      };
+      bar.appendChild(allBtn);
+
+      (data.storeTimings || []).forEach(t => {
+        const isSelected = state.activeStoreFilter === t.store;
+        let dotColor = 'bg-emerald-400';
+        if (t.status === 'empty') dotColor = 'bg-zinc-500';
+        if (t.status === 'error' || t.status === 'timeout') dotColor = 'bg-red-500';
+
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.title = t.error ? `Error: ${t.error}` : `Fuente: ${t.source}`;
+        pill.className = `px-2.5 py-1 rounded-md text-xs font-mono flex items-center gap-1.5 border transition ${
+          isSelected
+            ? 'bg-zinc-800 border-emerald-500 text-white'
+            : 'bg-zinc-950/90 border-zinc-800/90 text-zinc-300 hover:border-zinc-700'
+        }`;
+        pill.innerHTML = `
+          <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
+          <span>${t.store}</span>
+          <span class="text-zinc-400">(${t.count})</span>
+          <span class="text-[10px] text-zinc-500">${t.durationMs}ms</span>
+        `;
+        pill.onclick = () => {
+          state.activeStoreFilter = state.activeStoreFilter === t.store ? 'ALL' : t.store;
+          renderTelemetry(state.lastResponse);
+          renderResults();
+        };
+        bar.appendChild(pill);
+      });
+    }
+
+    function renderResults() {
+      const grid = el('resultsGrid');
+      grid.innerHTML = '';
+      const data = state.lastResponse;
+      if (!data) return;
+
+      const filterText = el('localFilterInput').value.trim().toLowerCase();
+
+      if (state.viewMode === 'grouped' && state.activeStoreFilter === 'ALL') {
+        const groups = (data.groups || []).filter(g => {
+          if (!filterText) return true;
+          return g.title.toLowerCase().includes(filterText) ||
+                 (g.brand && g.brand.toLowerCase().includes(filterText)) ||
+                 (g.ean && g.ean.includes(filterText));
+        });
+
+        if (groups.length === 0) {
+          grid.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-500 text-sm">No se encontraron productos con ese criterio.</div>`;
+          return;
+        }
+
+        groups.forEach(g => {
+          grid.appendChild(createGroupCard(g));
+        });
+      } else {
+        // Flat individual items view
+        let items = [];
+        Object.entries(data.byStore || {}).forEach(([store, list]) => {
+          if (state.activeStoreFilter !== 'ALL' && state.activeStoreFilter !== store) return;
+          (list || []).forEach(p => items.push(p));
+        });
+
+        if (filterText) {
+          items = items.filter(p =>
+            p.name.toLowerCase().includes(filterText) ||
+            (p.brand && p.brand.toLowerCase().includes(filterText)) ||
+            (p.ean && p.ean.includes(filterText))
+          );
+        }
+
+        const sortVal = el('sortSelect').value;
+        if (sortVal === 'price_asc') items.sort((a, b) => a.price - b.price);
+        if (sortVal === 'price_desc') items.sort((a, b) => b.price - a.price);
+
+        if (items.length === 0) {
+          grid.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-500 text-sm">No hay resultados para mostrar.</div>`;
+          return;
+        }
+
+        items.forEach(p => {
+          grid.appendChild(createSingleCard(p));
+        });
+      }
+    }
+
+    function createGroupCard(g) {
+      const card = document.createElement('article');
+      card.className = 'bg-zinc-900/70 border border-zinc-800/90 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-between gap-3 transition shadow-sm';
+
+      const anchor = g.offers[0];
+      const hasMulti = g.storeCount > 1;
+
+      const offersHtml = g.offers.map((o, idx) => {
+        const promoBadge = (o.product.discounts && o.product.discounts.length > 0)
+          ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">${o.product.discounts[0].headline}</span>`
+          : '';
+        return `
+          <a href="${o.product.link || '#'}" target="_blank" rel="noopener"
+            class="flex items-center justify-between py-1.5 px-2 rounded-lg text-xs ${
+              idx === 0 ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-zinc-800/60'
+            }">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="font-semibold ${idx === 0 ? 'text-emerald-300' : 'text-zinc-300'}">${o.store}</span>
+              ${promoBadge}
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              ${o.diffPct > 0 ? `<span class="text-[10px] font-mono text-zinc-500">+${o.diffPct}%</span>` : ''}
+              <span class="font-mono font-bold ${idx === 0 ? 'text-emerald-400' : 'text-zinc-200'}">${fmtARS.format(o.price)}</span>
+            </div>
+          </a>
+        `;
+      }).join('');
+
+      card.innerHTML = `
+        <div>
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex flex-wrap gap-1">
+              <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full ${
+                hasMulti ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold' : 'bg-zinc-800 text-zinc-400'
+              }">
+                ${g.storeCount} ${g.storeCount === 1 ? 'súper' : 'súpers'}
+              </span>
+              ${g.maxSavingPct > 0 ? `<span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Ahorro hasta ${g.maxSavingPct}%</span>` : ''}
+            </div>
+            ${g.ean ? `<button type="button" onclick="searchByEan('${g.ean}')" class="text-[10px] font-mono text-zinc-500 hover:text-emerald-400" title="Buscar este EAN en todos los súpers">EAN ${g.ean}</button>` : ''}
+          </div>
+
+          <div class="flex gap-3 items-center mb-3">
+            <div class="w-16 h-16 rounded-xl bg-white p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
+              <img src="${g.image}" alt="" class="max-h-full max-w-full object-contain" loading="lazy" />
+            </div>
+            <div class="min-w-0 flex-1">
+              ${g.brand ? `<p class="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold truncate">${g.brand}</p>` : ''}
+              <h3 class="text-sm font-semibold text-zinc-100 leading-snug line-clamp-2">${g.title}</h3>
+              ${g.unitMeasure ? `<p class="text-[11px] font-mono text-zinc-400 mt-0.5">${g.unitMeasure.label} · <span class="text-zinc-300">${fmtARS.format(g.unitMeasure.referencePrice)}/${g.unitMeasure.referenceUnit}</span></p>` : ''}
+            </div>
+          </div>
+
+          <div class="mb-2 flex items-baseline justify-between border-t border-zinc-800/80 pt-2.5">
+            <span class="text-xs text-zinc-400">Mejor precio en <strong class="text-white">${g.bestStore}</strong></span>
+            <span class="text-lg font-bold font-mono text-emerald-400">${fmtARS.format(g.bestPrice)}</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1 border-t border-zinc-800/60 pt-2">
+          ${offersHtml}
+        </div>
+      `;
+      return card;
+    }
+
+    function createSingleCard(p) {
+      const card = document.createElement('article');
+      card.className = 'bg-zinc-900/70 border border-zinc-800/90 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-between gap-3 transition';
+
+      const promoBadge = (p.discounts && p.discounts.length > 0)
+        ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">${p.discounts[0].headline}</span>`
+        : '';
+
+      card.innerHTML = `
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-zinc-800 text-emerald-400">${p.supermarket}</span>
+            ${p.normalizedEan ? `<button type="button" onclick="searchByEan('${p.normalizedEan}')" class="text-[10px] font-mono text-zinc-500 hover:text-emerald-400">EAN ${p.normalizedEan}</button>` : ''}
+          </div>
+          <div class="flex gap-3 items-center">
+            <div class="w-16 h-16 rounded-xl bg-white p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
+              <img src="${p.image}" alt="" class="max-h-full max-w-full object-contain" loading="lazy" />
+            </div>
+            <div class="min-w-0 flex-1">
+              ${p.brand ? `<p class="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold">${p.brand}</p>` : ''}
+              <h3 class="text-sm font-semibold text-zinc-100 leading-snug line-clamp-2">${p.name}</h3>
+              ${p.unitMeasure ? `<p class="text-[11px] font-mono text-zinc-400 mt-0.5">${p.unitMeasure.label} · ${fmtARS.format(p.unitMeasure.referencePrice)}/${p.unitMeasure.referenceUnit}</p>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between border-t border-zinc-800/80 pt-3">
+          <div>
+            ${p.listPrice > p.price ? `<p class="text-xs text-zinc-500 line-through font-mono">${fmtARS.format(p.listPrice)}</p>` : ''}
+            <div class="flex items-center gap-2">
+              <span class="text-lg font-bold font-mono text-emerald-400">${fmtARS.format(p.price)}</span>
+              ${promoBadge}
+            </div>
+          </div>
+          <a href="${p.link || '#'}" target="_blank" rel="noopener"
+            class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 transition">
+            Ver en tienda ↗
+          </a>
+        </div>
+      `;
+      return card;
+    }
+
+    window.searchByEan = function(ean) {
+      el('searchInput').value = ean;
+      el('searchInput').dispatchEvent(new Event('input'));
+      runSearch();
+    };
+
+    loadStores();
+  </script>
+</body>
+</html>
