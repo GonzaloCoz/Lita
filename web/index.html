@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lita — Buscador & Auditor de Precios (Go Backend)</title>
+  <title>Lita — Buscador Global de Precios (Go Backend + Live Web)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -42,18 +42,18 @@
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-bold text-base tracking-tight text-white">Lita Engine</h1>
             <span id="connStatusBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Conectando...
+              Inicializando...
             </span>
           </div>
-          <p class="text-xs text-zinc-400">Buscador multi-supermercado en tiempo real (Texto y EAN)</p>
+          <p class="text-xs text-zinc-400">Buscador global multi-supermercado en tiempo real (Texto y Código EAN)</p>
         </div>
       </div>
 
       <!-- Backend URL + Postal Code + Controls -->
       <div class="flex items-center gap-2 flex-wrap">
-        <div class="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs gap-1.5" title="URL de tu Backend en Go (ej: http://localhost:8080 o Render/Railway)">
+        <div class="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs gap-1.5" title="URL de tu Backend en Go (ej: http://localhost:8080)">
           <span class="text-zinc-400">API Go:</span>
-          <input id="apiBaseInput" type="text" placeholder="Auto (Mismo Host)"
+          <input id="apiBaseInput" type="text" placeholder="http://localhost:8080"
             class="w-40 bg-transparent text-zinc-100 focus:outline-none font-mono text-xs" />
           <button id="btnSaveApi" type="button"
             class="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium transition">
@@ -91,8 +91,8 @@
     <section class="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 shadow-lg">
       <form id="searchForm" class="flex flex-col sm:flex-row gap-2.5">
         <div class="relative flex-1">
-          <input id="searchInput" type="text" required autofocus value="leche entera"
-            placeholder="Buscá un producto (ej: leche entera, yerba playadito, coca cola) o código EAN (ej: 7790742363107)..."
+          <input id="searchInput" type="text" required autofocus
+            placeholder="Buscá cualquier producto (ej: arroz, fideos, aceite, leche, café, shampoo) o EAN (ej: 7790742363107)..."
             class="w-full h-12 rounded-xl bg-zinc-950 border border-zinc-800 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 px-4 pr-24 text-sm text-white placeholder-zinc-500 outline-none transition" />
           <span id="queryModeBadge"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
@@ -104,14 +104,17 @@
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <span>Buscar Precios</span>
+          <span>Buscar en Súpers</span>
         </button>
       </form>
 
       <!-- Quick Test Chips -->
       <div class="mt-3 flex items-center gap-2 flex-wrap text-xs">
-        <span class="text-zinc-500">Pruebas rápidas:</span>
+        <span class="text-zinc-500">Búsquedas rápidas en vivo:</span>
         <button type="button" data-quick="leche entera" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🥛 leche entera</button>
+        <button type="button" data-quick="arroz gallo oro" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🍚 arroz gallo oro</button>
+        <button type="button" data-quick="fideos matarazzo" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🍝 fideos matarazzo</button>
+        <button type="button" data-quick="aceite natura 1.5" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🌻 aceite natura 1.5</button>
         <button type="button" data-quick="yerba playadito 1kg" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🧉 yerba playadito 1kg</button>
         <button type="button" data-quick="coca cola 2.25" class="quick-btn px-2.5 py-1 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">🥤 coca cola 2.25</button>
         <button type="button" data-quick="7790742363107" class="quick-btn px-2.5 py-1 rounded-full bg-emerald-950/50 hover:bg-emerald-900/50 border border-emerald-800/50 text-emerald-300 font-mono transition">🏷️ EAN: 7790742363107</button>
@@ -165,7 +168,7 @@
     <!-- Loading Skeleton -->
     <div id="loadingState" class="hidden py-16 flex-col items-center justify-center gap-3 text-center">
       <div class="w-10 h-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></div>
-      <p class="text-sm font-medium text-zinc-200">Consultando supermercados en paralelo...</p>
+      <p id="loadingText" class="text-sm font-medium text-zinc-200">Consultando supermercados en paralelo...</p>
       <p class="text-xs text-zinc-500">Unificando códigos EAN, promociones por cantidad y precios por Kg/Litro</p>
     </div>
 
@@ -183,216 +186,20 @@
   </main>
 
   <script>
-    // Embedded real snapshots from our Go Backend so GitHub Pages works immediately even before connecting a cloud Go URL
+    // Catalog with VTEX endpoints for Client-Side Global Live Search when Go Backend is not connected
     const DEFAULT_STORES = [
-      { id: "carrefour", name: "Carrefour", badgeColor: "#2563eb", enabledByDefault: true },
-      { id: "coto", name: "Coto", badgeColor: "#dc2626", enabledByDefault: true },
-      { id: "dia", name: "Dia", badgeColor: "#dc2626", enabledByDefault: true },
-      { id: "disco", name: "Disco", badgeColor: "#dc2626", enabledByDefault: true },
-      { id: "jumbo", name: "Jumbo", badgeColor: "#16a34a", enabledByDefault: true },
-      { id: "vea", name: "Vea", badgeColor: "#eab308", enabledByDefault: true },
-      { id: "masonline", name: "MasOnline", badgeColor: "#16a34a", enabledByDefault: true },
-      { id: "cordiez", name: "Cordiez", badgeColor: "#f97316", enabledByDefault: true },
-      { id: "super_mami", name: "Super Mami", badgeColor: "#e11d48", enabledByDefault: true },
-      { id: "maxiconsumo", name: "Maxiconsumo", badgeColor: "#0284c7", enabledByDefault: true },
-      { id: "farmacity", name: "Farmacity", badgeColor: "#16a34a", enabledByDefault: true }
+      { id: "dia", name: "Dia", engine: "vtex", baseUrl: "https://diaonline.supermercadosdia.com.ar", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
+      { id: "vea", name: "Vea", engine: "vtex", baseUrl: "https://www.vea.com.ar", salesChannel: "34", badgeColor: "#eab308", enabledByDefault: true, supportsEan: true },
+      { id: "masonline", name: "MasOnline", engine: "vtex", baseUrl: "https://www.masonline.com.ar", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
+      { id: "cordiez", name: "Cordiez", engine: "vtex", baseUrl: "https://www.cordiez.com.ar", badgeColor: "#f97316", enabledByDefault: true, supportsEan: true },
+      { id: "carrefour", name: "Carrefour", engine: "vtex", baseUrl: "https://www.carrefour.com.ar", badgeColor: "#2563eb", enabledByDefault: true, supportsEan: true },
+      { id: "disco", name: "Disco", engine: "vtex", baseUrl: "https://www.disco.com.ar", salesChannel: "34", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
+      { id: "jumbo", name: "Jumbo", engine: "vtex", baseUrl: "https://www.jumbo.com.ar", salesChannel: "34", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
+      { id: "coto", name: "Coto", engine: "scraper", baseUrl: "https://www.cotodigital.com.ar", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
+      { id: "farmacity", name: "Farmacity", engine: "vtex", baseUrl: "https://www.farmacity.com", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
+      { id: "super_mami", name: "Super Mami", engine: "scraper", badgeColor: "#e11d48", enabledByDefault: false, supportsEan: true },
+      { id: "maxiconsumo", name: "Maxiconsumo", engine: "scraper", badgeColor: "#0284c7", enabledByDefault: false, supportsEan: false }
     ];
-
-    const FALLBACK_DATASETS = {
-      "leche entera": {
-        "query": "leche entera",
-        "mode": "text",
-        "totalGroups": 64,
-        "totalItems": 125,
-        "durationMs": 1890,
-        "storeTimings": [
-          {"store": "Carrefour", "status": "ok", "count": 25, "durationMs": 1420, "source": "comprabien_cloud"},
-          {"store": "Cordiez", "status": "ok", "count": 25, "durationMs": 1420, "source": "comprabien_cloud"},
-          {"store": "Coto", "status": "ok", "count": 25, "durationMs": 1890, "source": "comprabien_action"},
-          {"store": "Dia", "status": "ok", "count": 25, "durationMs": 980, "source": "comprabien_action"},
-          {"store": "Disco", "status": "ok", "count": 25, "durationMs": 1420, "source": "comprabien_cloud"},
-          {"store": "Jumbo", "status": "ok", "count": 25, "durationMs": 1310, "source": "comprabien_action"},
-          {"store": "MasOnline", "status": "ok", "count": 25, "durationMs": 1420, "source": "comprabien_cloud"},
-          {"store": "Vea", "status": "ok", "count": 25, "durationMs": 1290, "source": "comprabien_action"}
-        ],
-        "groups": [
-          {
-            "groupKey": "ean:7790742363008",
-            "ean": "7790742363008",
-            "title": "Leche Larga Vida Clásica Entera 3% La Serenísima 1 L",
-            "brand": "LA SERENISIMA",
-            "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg",
-            "unitMeasure": {"label": "1 L", "referencePrice": 1642.5, "referenceUnit": "L"},
-            "bestPrice": 1642.5,
-            "bestStore": "Carrefour",
-            "maxSavingPct": 45.9,
-            "storeCount": 7,
-            "offers": [
-              {"store": "Carrefour", "price": 1642.5, "listPrice": 3030, "diffPct": 0, "product": {"name": "Leche La Serenísima Clásica 3% 1L", "price": 1642.5, "listPrice": 3030, "supermarket": "Carrefour", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://www.carrefour.com.ar/leche-la-serenisima-clasica-3-1l-720718/p", "discounts": [{"headline": "$1.642,5 c/u llevando 4"}]}},
-              {"store": "Cordiez", "price": 2199, "listPrice": 2739, "diffPct": 33.9, "product": {"name": "Leche Entera UAT La Serenísima 1 Lt", "price": 2199, "listPrice": 2739, "supermarket": "Cordiez", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://www.cordiez.com.ar/leche-entera-uat-la-serenisima-1-lt/p", "discounts": [{"headline": "Oferta"}]}},
-              {"store": "Coto", "price": 2272.5, "listPrice": 3030, "diffPct": 38.4, "product": {"name": "Leche Entera La Serenísima 1 L", "price": 2272.5, "listPrice": 3030, "supermarket": "Coto", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://www.cotodigital.com.ar/sitios/cdigi/producto/_/R-00251875-00251875-200", "discounts": [{"headline": "25% Dto"}]}},
-              {"store": "Vea", "price": 2990, "listPrice": 2990, "diffPct": 82.0, "product": {"name": "Leche UAT Entera La Serenísima 1 Lt", "price": 2990, "listPrice": 2990, "supermarket": "Vea", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://www.vea.com.ar/leche-uat-entera-la-serenisima-3-1-lt/p", "discounts": []}},
-              {"store": "Dia", "price": 3030, "listPrice": 3030, "diffPct": 84.5, "product": {"name": "Leche Larga Vida Entera La Serenísima 1 Lt", "price": 3030, "listPrice": 3030, "supermarket": "Dia", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://diaonline.supermercadosdia.com.ar/leche-larga-vida-entera-la-serenisima-1-lt-295997/p", "discounts": []}},
-              {"store": "Jumbo", "price": 3031, "listPrice": 3031, "diffPct": 84.5, "product": {"name": "Leche UAT Entera La Serenísima 1 Lt", "price": 3031, "listPrice": 3031, "supermarket": "Jumbo", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://www.jumbo.com.ar/leche-uat-entera-la-serenisima-3-1-lt/p", "discounts": []}},
-              {"store": "MasOnline", "price": 3039, "listPrice": 3039, "diffPct": 85.0, "product": {"name": "Leche La Serenísima Larga Vida Entera 1 L", "price": 3039, "listPrice": 3039, "supermarket": "MasOnline", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636140/7790742363008_01.jpg.jpg", "link": "https://www.masonline.com.ar/leche-la-serenisima-larga-vida-entera-1-l/p", "discounts": []}}
-            ]
-          },
-          {
-            "groupKey": "ean:7798039600034",
-            "ean": "7798039600034",
-            "title": "Leche Larga Vida Entera Tregar / Coto UAT 1 L",
-            "brand": "TREGAR",
-            "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00008800/00008899.jpg",
-            "unitMeasure": {"label": "1 L", "referencePrice": 1666.08, "referenceUnit": "L"},
-            "bestPrice": 1666.08,
-            "bestStore": "Coto",
-            "maxSavingPct": 31.9,
-            "storeCount": 5,
-            "offers": [
-              {"store": "Coto", "price": 1666.08, "listPrice": 2499, "diffPct": 0, "product": {"name": "Leche Larga Vida Entera COTO Ttb 1 L", "price": 1666.08, "listPrice": 2499, "supermarket": "Coto", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00008800/00008899.jpg", "link": "https://www.cotodigital.com.ar/sitios/cdigi/producto/_/R-00008899-00008899-200", "discounts": [{"headline": "3x2"}]}},
-              {"store": "Cordiez", "price": 1899, "listPrice": 1899, "diffPct": 14.0, "product": {"name": "Leche Entera Tregar 1 Lt", "price": 1899, "listPrice": 1899, "supermarket": "Cordiez", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00008800/00008899.jpg", "link": "https://www.cordiez.com.ar/leche-entera-tregar-1-lt/p", "discounts": []}},
-              {"store": "MasOnline", "price": 2150, "listPrice": 2150, "diffPct": 29.0, "product": {"name": "Leche Entera Larga Vida Tregar 1 L", "price": 2150, "listPrice": 2150, "supermarket": "MasOnline", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00008800/00008899.jpg", "link": "https://www.masonline.com.ar/leche-entera-larga-vida-tregar-1-l/p", "discounts": []}},
-              {"store": "Vea", "price": 2390, "listPrice": 2390, "diffPct": 43.4, "product": {"name": "Leche Entera Tregar 1L", "price": 2390, "listPrice": 2390, "supermarket": "Vea", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00008800/00008899.jpg", "link": "https://www.vea.com.ar/leche-entera-tregar-1l/p", "discounts": []}},
-              {"store": "Jumbo", "price": 2450, "listPrice": 2450, "diffPct": 47.1, "product": {"name": "Leche Entera Tregar 1L", "price": 2450, "listPrice": 2450, "supermarket": "Jumbo", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00008800/00008899.jpg", "link": "https://www.jumbo.com.ar/leche-entera-tregar-1l/p", "discounts": []}}
-            ]
-          }
-        ]
-      },
-      "yerba playadito 1kg": {
-        "query": "yerba playadito 1kg",
-        "mode": "text",
-        "totalGroups": 54,
-        "totalItems": 129,
-        "durationMs": 1570,
-        "storeTimings": [
-          {"store": "Cordiez", "status": "ok", "count": 18, "durationMs": 1472, "source": "vtex_direct"},
-          {"store": "Coto", "status": "ok", "count": 18, "durationMs": 1570, "source": "comprabien_action"},
-          {"store": "Dia", "status": "ok", "count": 18, "durationMs": 856, "source": "comprabien_action"},
-          {"store": "Jumbo", "status": "ok", "count": 25, "durationMs": 1404, "source": "comprabien_action"},
-          {"store": "MasOnline", "status": "ok", "count": 25, "durationMs": 1595, "source": "vtex_direct"},
-          {"store": "Vea", "status": "ok", "count": 25, "durationMs": 1510, "source": "comprabien_action"}
-        ],
-        "groups": [
-          {
-            "groupKey": "ean:7793704000928",
-            "ean": "7793704000928",
-            "title": "Yerba Mate Playadito Suave Con Palo 1 Kg",
-            "brand": "PLAYADITO",
-            "image": "https://arcordiezb2c.vteximg.com.br/arquivos/ids/161936/YERBA-PLAYADITO-SUAVE-CPALO-1-6176.jpg",
-            "unitMeasure": {"label": "1 kg", "referencePrice": 4450, "referenceUnit": "kg"},
-            "bestPrice": 4450,
-            "bestStore": "Cordiez",
-            "maxSavingPct": 15.9,
-            "storeCount": 5,
-            "offers": [
-              {"store": "Cordiez", "price": 4450, "listPrice": 5099, "diffPct": 0, "product": {"name": "Yerba Mate Suave Playadito 1 Kg", "price": 4450, "listPrice": 5099, "supermarket": "Cordiez", "image": "https://arcordiezb2c.vteximg.com.br/arquivos/ids/161936/YERBA-PLAYADITO-SUAVE-CPALO-1-6176.jpg", "link": "https://www.cordiez.com.ar/yerba-mate-suave-playadito-1-kg/p", "discounts": [{"headline": "Oferta"}]}},
-              {"store": "Vea", "price": 5190, "listPrice": 5190, "diffPct": 16.6, "product": {"name": "Yerba Mate Playadito Suave 1 Kg", "price": 5190, "listPrice": 5190, "supermarket": "Vea", "image": "https://arcordiezb2c.vteximg.com.br/arquivos/ids/161936/YERBA-PLAYADITO-SUAVE-CPALO-1-6176.jpg", "link": "https://www.vea.com.ar/yerba-mate-playadito-suave-1-kg/p", "discounts": []}},
-              {"store": "Dia", "price": 5208, "listPrice": 5208, "diffPct": 17.0, "product": {"name": "Yerba Mate Playadito Suave 1 Kg", "price": 5208, "listPrice": 5208, "supermarket": "Dia", "image": "https://arcordiezb2c.vteximg.com.br/arquivos/ids/161936/YERBA-PLAYADITO-SUAVE-CPALO-1-6176.jpg", "link": "https://diaonline.supermercadosdia.com.ar/yerba-mate-playadito-suave-1-kg-269577/p", "discounts": []}},
-              {"store": "Jumbo", "price": 5208, "listPrice": 5208, "diffPct": 17.0, "product": {"name": "Yerba Mate Playadito Suave 1 Kg", "price": 5208, "listPrice": 5208, "supermarket": "Jumbo", "image": "https://arcordiezb2c.vteximg.com.br/arquivos/ids/161936/YERBA-PLAYADITO-SUAVE-CPALO-1-6176.jpg", "link": "https://www.jumbo.com.ar/yerba-mate-playadito-suave-1-kg/p", "discounts": []}},
-              {"store": "MasOnline", "price": 5289, "listPrice": 5289, "diffPct": 18.9, "product": {"name": "Yerba Mate Suave Playadito 1Kg", "price": 5289, "listPrice": 5289, "supermarket": "MasOnline", "image": "https://arcordiezb2c.vteximg.com.br/arquivos/ids/161936/YERBA-PLAYADITO-SUAVE-CPALO-1-6176.jpg", "link": "https://www.masonline.com.ar/yerba-mate-suave-playadito-1kg-2/p", "discounts": []}}
-            ]
-          },
-          {
-            "groupKey": "ean:7792710000175",
-            "ean": "7792710000175",
-            "title": "Yerba Mate Amanda Tradicional Con Palo 1 Kg",
-            "brand": "AMANDA",
-            "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg",
-            "unitMeasure": {"label": "1 kg", "referencePrice": 3245, "referenceUnit": "kg"},
-            "bestPrice": 3245,
-            "bestStore": "Dia",
-            "maxSavingPct": 44.5,
-            "storeCount": 6,
-            "offers": [
-              {"store": "Dia", "price": 3245, "listPrice": 4989, "diffPct": 0, "product": {"name": "Yerba Mate Amanda Tradicional 1 Kg", "price": 3245, "listPrice": 4989, "supermarket": "Dia", "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg", "link": "https://diaonline.supermercadosdia.com.ar/yerba-mate-amanda-tradicional-1-kg-164682/p", "discounts": [{"headline": "35% Off"}]}},
-              {"store": "Cordiez", "price": 3839, "listPrice": 3839, "diffPct": 18.3, "product": {"name": "Yerba Mate Tradicional Amanda 1 Kg", "price": 3839, "listPrice": 3839, "supermarket": "Cordiez", "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg", "link": "https://www.cordiez.com.ar/yerba-mate-tradicional-amanda-1-kg/p", "discounts": []}},
-              {"store": "Coto", "price": 5069, "listPrice": 5069, "diffPct": 56.2, "product": {"name": "Yerba Mate Amanda 1 Kg", "price": 5069, "listPrice": 5069, "supermarket": "Coto", "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg", "link": "https://www.cotodigital.com.ar/sitios/cdigi/producto/_/R-00251289-00251289-200", "discounts": []}},
-              {"store": "MasOnline", "price": 5089, "listPrice": 5089, "diffPct": 56.8, "product": {"name": "Yerba Mate Amanda Con Palo 1 Kg", "price": 5089, "listPrice": 5089, "supermarket": "MasOnline", "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg", "link": "https://www.masonline.com.ar/yarba-mate-amanda-con-palo-x-1-kg-2/p", "discounts": []}},
-              {"store": "Vea", "price": 5490, "listPrice": 5490, "diffPct": 69.2, "product": {"name": "Yerba Amanda Con Palo 1 Kg", "price": 5490, "listPrice": 5490, "supermarket": "Vea", "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg", "link": "https://www.vea.com.ar/yerba-amanda-con-palo-1-kg-2/p", "discounts": []}},
-              {"store": "Jumbo", "price": 5850, "listPrice": 5850, "diffPct": 80.3, "product": {"name": "Yerba Amanda Con Palo 1 Kg", "price": 5850, "listPrice": 5850, "supermarket": "Jumbo", "image": "https://ardiaprod.vteximg.com.br/arquivos/ids/313240/Yerba-Mate-Amanda-Tradicional-1-Kg-_1.jpg", "link": "https://www.jumbo.com.ar/yerba-amanda-con-palo-1-kg-2/p", "discounts": []}}
-            ]
-          }
-        ]
-      },
-      "coca cola 2.25": {
-        "query": "coca cola 2.25",
-        "mode": "text",
-        "totalGroups": 64,
-        "totalItems": 145,
-        "durationMs": 1950,
-        "storeTimings": [
-          {"store": "Cordiez", "status": "ok", "count": 25, "durationMs": 1120, "source": "comprabien_cloud"},
-          {"store": "Coto", "status": "ok", "count": 20, "durationMs": 1950, "source": "comprabien_action"},
-          {"store": "Dia", "status": "ok", "count": 25, "durationMs": 890, "source": "comprabien_action"},
-          {"store": "Jumbo", "status": "ok", "count": 25, "durationMs": 1340, "source": "comprabien_action"},
-          {"store": "MasOnline", "status": "ok", "count": 25, "durationMs": 1120, "source": "comprabien_cloud"},
-          {"store": "Vea", "status": "ok", "count": 25, "durationMs": 1280, "source": "comprabien_action"}
-        ],
-        "groups": [
-          {
-            "groupKey": "ean:7790895000997",
-            "ean": "7790895000997",
-            "title": "Gaseosa Coca-Cola Sabor Original 2,25 L",
-            "brand": "COCA COLA",
-            "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg",
-            "unitMeasure": {"label": "2,25 L", "referencePrice": 1577.78, "referenceUnit": "L"},
-            "bestPrice": 3550,
-            "bestStore": "Coto",
-            "maxSavingPct": 26.0,
-            "storeCount": 6,
-            "offers": [
-              {"store": "Coto", "price": 3550, "listPrice": 4800, "diffPct": 0, "product": {"name": "Gaseosa Coca-Cola Sabor Original 2,25 L", "price": 3550, "listPrice": 4800, "supermarket": "Coto", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg", "link": "https://www.cotodigital.com.ar/sitios/cdigi/producto/_/R-00001475-00001475-200", "discounts": [{"headline": "2do al 50%"}]}},
-              {"store": "Cordiez", "price": 3899, "listPrice": 4599, "diffPct": 9.8, "product": {"name": "Gaseosa Coca Cola 2.25 Lt", "price": 3899, "listPrice": 4599, "supermarket": "Cordiez", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg", "link": "https://www.cordiez.com.ar/gaseosa-coca-cola-2-25-lt/p", "discounts": []}},
-              {"store": "Vea", "price": 4350, "listPrice": 5800, "diffPct": 22.5, "product": {"name": "Gaseosa Coca-Cola Sabor Original 2.25 Lt", "price": 4350, "listPrice": 5800, "supermarket": "Vea", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg", "link": "https://www.vea.com.ar/gaseosa-coca-cola-sabor-original-2-25-lt/p", "discounts": [{"headline": "2do al 50%"}]}},
-              {"store": "Jumbo", "price": 4350, "listPrice": 5800, "diffPct": 22.5, "product": {"name": "Gaseosa Coca-Cola Sabor Original 2.25 Lt", "price": 4350, "listPrice": 5800, "supermarket": "Jumbo", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg", "link": "https://www.jumbo.com.ar/gaseosa-coca-cola-sabor-original-2-25-lt/p", "discounts": [{"headline": "2do al 50%"}]}},
-              {"store": "MasOnline", "price": 4639, "listPrice": 4639, "diffPct": 30.7, "product": {"name": "Gaseosa Coca-Cola Sabor Original 2.25 L", "price": 4639, "listPrice": 4639, "supermarket": "MasOnline", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg", "link": "https://www.masonline.com.ar/gaseosa-coca-cola-sabor-original-2-25-l/p", "discounts": []}},
-              {"store": "Dia", "price": 4800, "listPrice": 4800, "diffPct": 35.2, "product": {"name": "Gaseosa Coca-Cola Sabor Original 2.25 Lts", "price": 4800, "listPrice": 4800, "supermarket": "Dia", "image": "https://static.cotodigital3.com.ar/sitios/fotos/large/00001400/00001475.jpg", "link": "https://diaonline.supermercadosdia.com.ar/gaseosa-coca-cola-sabor-original-225-lts-16301/p", "discounts": []}}
-            ]
-          }
-        ]
-      },
-      "7790742363107": {
-        "query": "7790742363107",
-        "mode": "ean",
-        "totalGroups": 1,
-        "totalItems": 8,
-        "durationMs": 1158,
-        "storeTimings": [
-          {"store": "Carrefour", "status": "ok", "count": 1, "durationMs": 1157, "source": "comprabien_ean"},
-          {"store": "Cordiez", "status": "ok", "count": 1, "durationMs": 360, "source": "comprabien_ean"},
-          {"store": "Coto", "status": "ok", "count": 1, "durationMs": 319, "source": "comprabien_ean"},
-          {"store": "Dia", "status": "ok", "count": 1, "durationMs": 462, "source": "comprabien_ean"},
-          {"store": "Disco", "status": "ok", "count": 1, "durationMs": 756, "source": "comprabien_ean"},
-          {"store": "Jumbo", "status": "ok", "count": 1, "durationMs": 683, "source": "comprabien_ean"},
-          {"store": "MasOnline", "status": "ok", "count": 1, "durationMs": 462, "source": "comprabien_ean"},
-          {"store": "Vea", "status": "ok", "count": 1, "durationMs": 756, "source": "comprabien_ean"}
-        ],
-        "groups": [
-          {
-            "groupKey": "ean:7790742363107",
-            "ean": "7790742363107",
-            "title": "Leche Larga Vida Parcialmente Descremada Liviana 1% La Serenísima 1 L",
-            "brand": "LA SERENISIMA",
-            "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg",
-            "unitMeasure": {"label": "1 L", "referencePrice": 1642.5, "referenceUnit": "L"},
-            "bestPrice": 1642.5,
-            "bestStore": "Carrefour",
-            "maxSavingPct": 46.0,
-            "storeCount": 8,
-            "offers": [
-              {"store": "Carrefour", "price": 1642.5, "listPrice": 3030, "diffPct": 0, "product": {"name": "Leche La Serenísima Liviana 1% 1L", "price": 1642.5, "listPrice": 3030, "supermarket": "Carrefour", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.carrefour.com.ar/leche-la-serenisima-liviana-1-1l-720720/p", "discounts": [{"headline": "$1.642,5 c/u llevando 4"}]}},
-              {"store": "Cordiez", "price": 2199, "listPrice": 2739, "diffPct": 33.9, "product": {"name": "Leche Descremada UAT La Serenísima 1 Lt", "price": 2199, "listPrice": 2739, "supermarket": "Cordiez", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.cordiez.com.ar/leche-descremada-uat-la-serenisima-1-lt/p", "discounts": []}},
-              {"store": "Coto", "price": 2272.5, "listPrice": 3030, "diffPct": 38.4, "product": {"name": "Leche Liviana 1% La Serenísima 1L", "price": 2272.5, "listPrice": 3030, "supermarket": "Coto", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.cotodigital.com.ar/sitios/cdigi/producto/_/R-00251876-00251876-200", "discounts": []}},
-              {"store": "Vea", "price": 2990, "listPrice": 2990, "diffPct": 82.0, "product": {"name": "Leche UAT La Serenísima 1% 1 Lt", "price": 2990, "listPrice": 2990, "supermarket": "Vea", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.vea.com.ar/leche-uat-la-serenisima-1-1-lt/p", "discounts": []}},
-              {"store": "Dia", "price": 3030, "listPrice": 3030, "diffPct": 84.5, "product": {"name": "Leche Larga Vida Liviana 1% La Serenísima 1 Lt", "price": 3030, "listPrice": 3030, "supermarket": "Dia", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://diaonline.supermercadosdia.com.ar/leche-larga-vida-liviana-1--la-serenisima-1-lt-295998/p", "discounts": []}},
-              {"store": "Disco", "price": 3031, "listPrice": 3031, "diffPct": 84.5, "product": {"name": "Leche UAT La Serenísima 1% 1 Lt", "price": 3031, "listPrice": 3031, "supermarket": "Disco", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.disco.com.ar/leche-uat-la-serenisima-1-1-lt/p", "discounts": []}},
-              {"store": "Jumbo", "price": 3031, "listPrice": 3031, "diffPct": 84.5, "product": {"name": "Leche UAT La Serenísima 1% 1 Lt", "price": 3031, "listPrice": 3031, "supermarket": "Jumbo", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.jumbo.com.ar/leche-uat-la-serenisima-1-1-lt/p", "discounts": []}},
-              {"store": "MasOnline", "price": 3039, "listPrice": 3039, "diffPct": 85.0, "product": {"name": "Leche La Serenísima Larga Vida Liviana 1 L", "price": 3039, "listPrice": 3039, "supermarket": "MasOnline", "image": "https://carrefourar.vteximg.com.br/arquivos/ids/636143/7790742363107_01.jpg.jpg", "link": "https://www.masonline.com.ar/leche-la-serenisima-larga-vida-livana-1-l-2/p", "discounts": []}}
-            ]
-          }
-        ]
-      }
-    };
 
     const state = {
       apiBase: localStorage.getItem('lita_api_base') || '',
@@ -418,6 +225,247 @@
       return base ? `${base}${path}` : path;
     }
 
+    // ---------------------------------------------------------
+    // Client-Side Normalization & Grouping Engine (Mirror of Go)
+    // ---------------------------------------------------------
+    function normalizeEAN(raw) {
+      if (!raw) return '';
+      const digits = String(raw).replace(/\D/g, '');
+      if (digits.length !== 8 && (digits.length < 11 || digits.length > 14)) return '';
+      const trimmed = digits.length === 8 ? digits : digits.replace(/^0+/, '');
+      if (trimmed.length < 8) return '';
+      if (trimmed.length === 8) {
+        if (/^[02]/.test(trimmed)) return '';
+        return trimmed;
+      }
+      if (trimmed.length <= 13) {
+        const padded = trimmed.padStart(13, '0');
+        if (/^(02|04|2)/.test(padded)) return '';
+      }
+      return trimmed;
+    }
+
+    function parseUnitMeasure(title, price) {
+      if (!title || !price || price <= 0) return null;
+      const re = /(\d+(?:[.,]\d+)?)\s*(litros|litro|cm3|lts|grs|ml|cc|lt|kg|gr|l|g)\b/i;
+      const m = re.exec(title);
+      if (!m) return null;
+      const val = parseFloat(m[1].replace(',', '.'));
+      if (!val || val <= 0) return null;
+      const u = m[2].toLowerCase();
+      const map = {
+        litros: { kind: 'volume', f: 1000 }, litro: { kind: 'volume', f: 1000 },
+        lts: { kind: 'volume', f: 1000 }, lt: { kind: 'volume', f: 1000 }, l: { kind: 'volume', f: 1000 },
+        cm3: { kind: 'volume', f: 1 }, ml: { kind: 'volume', f: 1 }, cc: { kind: 'volume', f: 1 },
+        kg: { kind: 'weight', f: 1000 }, grs: { kind: 'weight', f: 1 }, gr: { kind: 'weight', f: 1 }, g: { kind: 'weight', f: 1 }
+      };
+      const def = map[u];
+      if (!def) return null;
+      const unitAmount = val * def.f;
+      if (def.kind === 'volume' && (unitAmount < 50 || unitAmount > 20000)) return null;
+      if (def.kind === 'weight' && (unitAmount < 10 || unitAmount > 20000)) return null;
+
+      let pack = 1;
+      const packMatch = /(?:pack\s*(?:x\s*)?|\bx\s*)(\d{1,2})\b/i.exec(title);
+      if (packMatch) {
+        const p = parseInt(packMatch[1], 10);
+        if (p >= 2 && p <= 48 && Math.abs(p - val) > 0.001) pack = p;
+      }
+
+      const totalAmount = unitAmount * pack;
+      const refUnit = def.kind === 'volume' ? 'L' : 'kg';
+      const smallUnit = def.kind === 'volume' ? 'ml' : 'g';
+      const baseLabel = unitAmount < 1000
+        ? `${Math.round(unitAmount)} ${smallUnit}`
+        : `${+(unitAmount / 1000).toFixed(2)} ${refUnit}`;
+      const label = pack > 1 ? `${baseLabel} × ${pack}` : baseLabel;
+      const referencePrice = Math.round((price / (totalAmount / 1000)) * 100) / 100;
+
+      return { kind: def.kind, unitAmount, pack, totalAmount, label, referencePrice, referenceUnit: refUnit };
+    }
+
+    // Fetch a target URL via multiple public CORS gateways in race mode
+    async function fetchViaCorsProxy(targetUrl, timeoutMs = 11000) {
+      const encoded = encodeURIComponent(targetUrl);
+      const gateways = [
+        `https://api.allorigins.win/raw?url=${encoded}`,
+        `https://corsproxy.io/?url=${encoded}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encoded}`
+      ];
+
+      const attempt = async (gwUrl) => {
+        const res = await fetch(gwUrl, { signal: AbortSignal.timeout(timeoutMs) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Not a VTEX array');
+        return data;
+      };
+
+      return Promise.any(gateways.map(attempt));
+    }
+
+    async function searchVtexStoreBrowser(store, query, isEan) {
+      const t0 = performance.now();
+      const base = store.baseUrl.replace(/\/+$/, '');
+      const scParam = store.salesChannel ? `&sc=${store.salesChannel}` : '';
+      const targetUrl = isEan
+        ? `${base}/api/catalog_system/pub/products/search?fq=alternateIds_Ean:${encodeURIComponent(query)}${scParam}`
+        : `${base}/api/catalog_system/pub/products/search/${encodeURIComponent(query)}?_from=0&_to=23${scParam}`;
+
+      try {
+        const rawProducts = await fetchViaCorsProxy(targetUrl);
+        const products = [];
+        for (const rp of rawProducts) {
+          if (!rp.items || !rp.items.length) continue;
+          const item = rp.items[0];
+          const seller = (item.sellers || []).find(s => s.sellerDefault) || (item.sellers || [])[0];
+          if (!seller || !seller.commertialOffer) continue;
+          const offer = seller.commertialOffer;
+          const avail = (offer.AvailableQuantity > 0 || offer.IsAvailable) && offer.Price > 0;
+          if (!avail) continue;
+
+          const imgUrl = (item.images && item.images[0] && item.images[0].imageUrl) || '';
+          if (!imgUrl) continue;
+
+          const normEan = normalizeEAN(item.ean);
+          products.push({
+            id: String(rp.productId || item.itemId),
+            name: rp.productName || item.name,
+            brand: rp.brand || '',
+            supermarket: store.name,
+            price: offer.Price,
+            listPrice: offer.ListPrice || offer.Price,
+            link: rp.linkText ? `${base}/${rp.linkText}/p` : base,
+            image: imgUrl,
+            ean: item.ean || '',
+            normalizedEan: normEan,
+            sku: item.itemId || '',
+            isAvailable: true,
+            discounts: [],
+            unitMeasure: parseUnitMeasure(rp.productName || item.name, offer.Price),
+            providerSource: 'browser_vtex_live'
+          });
+        }
+        const durationMs = Math.round(performance.now() - t0);
+        return {
+          store: store.name,
+          products,
+          timing: {
+            store: store.name,
+            status: products.length > 0 ? 'ok' : 'empty',
+            count: products.length,
+            durationMs,
+            source: 'browser_vtex_live'
+          }
+        };
+      } catch (err) {
+        const durationMs = Math.round(performance.now() - t0);
+        return {
+          store: store.name,
+          products: [],
+          timing: {
+            store: store.name,
+            status: 'error',
+            count: 0,
+            durationMs,
+            source: 'browser_vtex_live',
+            error: err.message
+          }
+        };
+      }
+    }
+
+    function buildClientSideSearchResponse(query, isEan, byStore, timings, totalDurationMs) {
+      const accumMap = new Map();
+      let totalItems = 0;
+
+      Object.keys(byStore).sort().forEach(store => {
+        const list = byStore[store] || [];
+        totalItems += list.length;
+        list.forEach(p => {
+          const gKey = p.normalizedEan ? `ean:${p.normalizedEan}` : `${store}:${p.id}`;
+          if (!accumMap.has(gKey)) {
+            accumMap.set(gKey, { key: gKey, ean: p.normalizedEan || '', offersMap: new Map() });
+          }
+          const acc = accumMap.get(gKey);
+          const prev = acc.offersMap.get(store);
+          if (!prev || p.price < prev.price) {
+            acc.offersMap.set(store, p);
+          }
+        });
+      });
+
+      const groups = [];
+      accumMap.forEach(acc => {
+        const offers = [];
+        acc.offersMap.forEach((product, store) => {
+          offers.push({
+            store,
+            price: product.price,
+            listPrice: product.listPrice,
+            isAvailable: true,
+            diffPct: 0,
+            product
+          });
+        });
+        offers.sort((a, b) => a.price - b.price);
+
+        const bestPrice = offers[0].price;
+        let maxPrice = bestPrice;
+        let bestTitle = offers[0].product.name;
+        let bestBrand = offers[0].product.brand;
+        let bestImage = offers[0].product.image;
+        let bestUnit = offers[0].product.unitMeasure;
+
+        offers.forEach(o => {
+          if (o.price > maxPrice) maxPrice = o.price;
+          if (bestPrice > 0 && o.price > bestPrice) {
+            o.diffPct = Math.round(((o.price - bestPrice) / bestPrice) * 1000) / 10;
+          }
+          if (o.product.name.length > bestTitle.length) bestTitle = o.product.name;
+          if (!bestBrand && o.product.brand) bestBrand = o.product.brand;
+          if (!bestUnit && o.product.unitMeasure) bestUnit = parseUnitMeasure(o.product.name, bestPrice);
+        });
+
+        const maxSavingPct = maxPrice > bestPrice ? Math.round(((maxPrice - bestPrice) / maxPrice) * 1000) / 10 : 0;
+
+        groups.push({
+          groupKey: acc.key,
+          ean: acc.ean,
+          title: bestTitle,
+          brand: bestBrand,
+          image: bestImage,
+          unitMeasure: bestUnit,
+          bestPrice,
+          bestStore: offers[0].store,
+          maxPrice,
+          maxSavingPct,
+          storeCount: offers.length,
+          offers
+        });
+      });
+
+      groups.sort((a, b) => {
+        if ((a.storeCount > 1) !== (b.storeCount > 1)) return a.storeCount > 1 ? -1 : 1;
+        if (a.storeCount !== b.storeCount) return b.storeCount - a.storeCount;
+        return a.bestPrice - b.bestPrice;
+      });
+
+      return {
+        query,
+        mode: isEan ? 'ean' : 'text',
+        totalGroups: groups.length,
+        totalItems,
+        durationMs: totalDurationMs,
+        groups,
+        byStore,
+        storeTimings: timings
+      };
+    }
+
+    // ---------------------------------------------------------
+    // UI Initialization & Event Listeners
+    // ---------------------------------------------------------
     el('apiBaseInput').value = state.apiBase;
     el('btnSaveApi').addEventListener('click', () => {
       state.apiBase = el('apiBaseInput').value.trim();
@@ -438,27 +486,57 @@
       }
     });
 
+    async function probeBackend() {
+      // 1. Try current apiBase (or same-origin if running on localhost)
+      const candidates = [];
+      if (state.apiBase) candidates.push(state.apiBase);
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        candidates.push('');
+      } else {
+        // Also probe local Go server on 8080 if user is opening GitHub Pages on their dev PC
+        candidates.push('http://localhost:8080');
+      }
+
+      for (const base of candidates) {
+        try {
+          const clean = base.replace(/\/+$/, '');
+          const url = clean ? `${clean}/api/stores` : '/api/stores';
+          const res = await fetch(url, { signal: AbortSignal.timeout(2500) });
+          if (res.ok) {
+            const data = await res.json();
+            state.apiBase = clean;
+            el('apiBaseInput').value = clean || location.origin;
+            state.stores = data.stores || DEFAULT_STORES;
+            state.backendOnline = true;
+            return true;
+          }
+        } catch (_) {}
+      }
+      state.backendOnline = false;
+      state.stores = DEFAULT_STORES;
+      return false;
+    }
+
     async function initApp() {
       const badge = el('connStatusBadge');
-      try {
-        const res = await fetch(apiUrl('/api/stores'), { signal: AbortSignal.timeout(3500) });
-        if (!res.ok) throw new Error('status ' + res.status);
-        const data = await res.json();
-        state.stores = data.stores || DEFAULT_STORES;
-        state.backendOnline = true;
-        badge.textContent = '● Go Backend Conectado (En Vivo)';
+      const ok = await probeBackend();
+      if (ok) {
+        badge.textContent = '● Go Backend Conectado (22 Tiendas En Vivo)';
         badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
-      } catch (err) {
-        state.stores = DEFAULT_STORES;
-        state.backendOnline = false;
-        badge.textContent = '⚡ Modo GitHub Pages (Snapshots Reales + Demo)';
-        badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
+      } else {
+        badge.textContent = '🌐 Búsqueda Global Web Activa (Multi-VTEX en Vivo)';
+        badge.className = 'text-[11px] font-mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30';
       }
+
       state.selectedStores.clear();
       state.stores.forEach(s => {
         if (s.enabledByDefault) state.selectedStores.add(s.name);
       });
       renderStoreChips();
+
+      if (!el('searchInput').value.trim()) {
+        el('searchInput').value = 'leche entera';
+      }
       runSearch();
     }
 
@@ -528,7 +606,7 @@
           ? `✓ Sucursales aplicadas (CP ${cp}): ${picked.join(' | ')}`
           : `Sin sucursales específicas para CP ${cp}; usando sucursales generales.`;
       } catch (e) {
-        banner.textContent = `Para consultar sucursales dinámicas por CP, conectá el Backend en Go en "API Go".`;
+        banner.textContent = `Para resolver sucursales por CP, iniciá el servidor Go local (http://localhost:8080).`;
       }
     });
 
@@ -582,8 +660,10 @@
       el('resultsGrid').innerHTML = '';
       state.activeStoreFilter = 'ALL';
 
+      // 1. If Go Backend is connected, use full Go Fan-Out Engine
       if (state.backendOnline) {
         try {
+          el('loadingText').textContent = `Consultando "${q}" en supermercados vía Go Backend...`;
           const params = new URLSearchParams();
           params.set('q', q);
           if (state.selectedStores.size > 0) {
@@ -608,31 +688,36 @@
           el('loadingState').classList.remove('flex');
           return;
         } catch (err) {
-          console.warn('Fallback a snapshots:', err);
+          console.warn('Go Backend no disponible, ejecutando búsqueda global web en vivo:', err);
         }
       }
 
-      // Offline / GitHub Pages instant fallback using embedded real Go Backend captures
-      const lower = q.toLowerCase();
-      let matchKey = Object.keys(FALLBACK_DATASETS).find(k => k.toLowerCase() === lower);
-      if (!matchKey) {
-        matchKey = Object.keys(FALLBACK_DATASETS).find(k => k.toLowerCase().includes(lower) || lower.includes(k.toLowerCase())) || 'leche entera';
-      }
-      const data = JSON.parse(JSON.stringify(FALLBACK_DATASETS[matchKey]));
-      // Build byStore map for flat view
-      data.byStore = {};
-      (data.groups || []).forEach(g => {
-        (g.offers || []).forEach(o => {
-          if (!data.byStore[o.store]) data.byStore[o.store] = [];
-          data.byStore[o.store].push({
-            ...o.product,
-            ean: g.ean,
-            normalizedEan: g.ean,
-            brand: g.brand,
-            unitMeasure: g.unitMeasure
-          });
-        });
+      // 2. Client-Side Global Live Search across VTEX Supermarkets (works on GitHub Pages for ANY search query!)
+      el('loadingText').textContent = `Buscando "${q}" en tiempo real en supermercados...`;
+      const tStart = performance.now();
+      const digits = q.replace(/\D/g, '');
+      const isEan = (digits.length === 8 || digits.length === 13) && /^\d+$/.test(q);
+
+      const vtexTargets = DEFAULT_STORES.filter(s =>
+        s.engine === 'vtex' &&
+        s.baseUrl &&
+        state.selectedStores.has(s.name) &&
+        (!isEan || s.supportsEan)
+      );
+
+      const results = await Promise.all(
+        vtexTargets.map(st => searchVtexStoreBrowser(st, isEan ? digits : q, isEan))
+      );
+
+      const byStore = {};
+      const timings = [];
+      results.forEach(r => {
+        if (r.products.length > 0) byStore[r.store] = r.products;
+        timings.push(r.timing);
       });
+
+      const totalDurationMs = Math.round(performance.now() - tStart);
+      const data = buildClientSideSearchResponse(q, isEan, byStore, timings, totalDurationMs);
 
       state.lastResponse = data;
       el('jsonOutput').textContent = JSON.stringify(data, null, 2);
@@ -649,13 +734,13 @@
 
       const multiCount = (data.groups || []).filter(g => g.storeCount > 1).length;
       el('summaryStats').innerHTML = `
-        <span>Modo: <strong class="text-emerald-400 uppercase font-mono">${data.mode}</strong></span>
+        <span>Consulta: <strong class="text-white">"${data.query}"</strong> (<span class="text-emerald-400 uppercase font-mono">${data.mode}</span>)</span>
         <span>·</span>
         <span>Productos únicos: <strong class="text-white">${data.totalGroups}</strong> (${data.totalItems} ofertas totales)</span>
         <span>·</span>
         <span>Coincidencias EAN en +2 súpers: <strong class="text-emerald-400">${multiCount}</strong></span>
         <span>·</span>
-        <span>Tiempo Fan-Out: <strong class="font-mono text-white">${data.durationMs} ms</strong></span>
+        <span>Tiempo: <strong class="font-mono text-white">${data.durationMs} ms</strong></span>
       `;
 
       const bar = el('storeTimingsBar');
@@ -684,6 +769,7 @@
 
         const pill = document.createElement('button');
         pill.type = 'button';
+        pill.title = t.error ? `Detalle: ${t.error}` : `Fuente: ${t.source}`;
         pill.className = `px-2.5 py-1 rounded-md text-xs font-mono flex items-center gap-1.5 border transition ${
           isSelected
             ? 'bg-zinc-800 border-emerald-500 text-white'
@@ -727,7 +813,7 @@
         if (sortVal === 'savings_desc') groups.sort((a, b) => (b.maxSavingPct || 0) - (a.maxSavingPct || 0));
 
         if (groups.length === 0) {
-          grid.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-500 text-sm">No se encontraron productos con ese criterio.</div>`;
+          grid.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-500 text-sm">No se encontraron productos para esta búsqueda. Probá otro término o conectá el Backend Go local en http://localhost:8080.</div>`;
           return;
         }
 
@@ -751,7 +837,7 @@
         if (sortVal === 'price_desc') items.sort((a, b) => b.price - a.price);
 
         if (items.length === 0) {
-          grid.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-500 text-sm">No hay resultados para mostrar.</div>`;
+          grid.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-500 text-sm">No hay resultados para mostrar en esta tienda.</div>`;
           return;
         }
 
