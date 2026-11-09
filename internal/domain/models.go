@@ -1,5 +1,42 @@
 package domain
 
+import (
+	"encoding/json"
+	"strconv"
+	"strings"
+)
+
+// FlexFloat unmarshals both JSON numbers and numeric strings gracefully.
+type FlexFloat float64
+
+func (f *FlexFloat) UnmarshalJSON(b []byte) error {
+	s := strings.TrimSpace(string(b))
+	if s == "" || s == "null" {
+		*f = 0
+		return nil
+	}
+	if strings.HasPrefix(s, "\"") && strings.HasSuffix(s, "\"") {
+		s = strings.Trim(s, "\"")
+		s = strings.TrimSpace(strings.TrimPrefix(s, "$"))
+		// Handle Argentine format if needed or standard float
+		if strings.Contains(s, ",") && strings.Contains(s, ".") {
+			s = strings.ReplaceAll(s, ".", "")
+			s = strings.ReplaceAll(s, ",", ".")
+		} else if strings.Contains(s, ",") {
+			s = strings.ReplaceAll(s, ",", ".")
+		}
+		if v, err := strconv.ParseFloat(s, 64); err == nil {
+			*f = FlexFloat(v)
+		}
+		return nil
+	}
+	var v float64
+	if err := json.Unmarshal(b, &v); err == nil {
+		*f = FlexFloat(v)
+	}
+	return nil
+}
+
 // StoreCategory defines the vertical of a store.
 type StoreCategory string
 
@@ -26,12 +63,12 @@ type StoreInfo struct {
 
 // Benefit represents the structured discount benefit (e.g. multibuy 3x2, percentage 25%).
 type Benefit struct {
-	Type        string   `json:"type"`                  // "multibuy" | "percentage" | "second_unit" | "fixed"
-	Label       string   `json:"label,omitempty"`       // e.g. "3x2", "2da al 70%"
-	MinQty      int      `json:"minQty,omitempty"`      // e.g. 3
-	UnitPrice   float64  `json:"unitPrice,omitempty"`   // effective unit price under promo
-	Percentage  float64  `json:"percentage,omitempty"`  // e.g. 25
-	SecondUnit  float64  `json:"secondUnit,omitempty"`  // e.g. 70
+	Type        string    `json:"type"`                  // "multibuy" | "percentage" | "second_unit" | "fixed"
+	Label       string    `json:"label,omitempty"`       // e.g. "3x2", "2da al 70%"
+	MinQty      int       `json:"minQty,omitempty"`      // e.g. 3
+	UnitPrice   FlexFloat `json:"unitPrice,omitempty"`   // effective unit price under promo
+	Percentage  FlexFloat `json:"percentage,omitempty"`  // e.g. 25
+	SecondUnit  FlexFloat `json:"secondUnit,omitempty"`  // e.g. 70
 }
 
 // Discount represents a store or payment/bank promotion attached to a product.
@@ -64,8 +101,8 @@ type Product struct {
 	Supermarket          string       `json:"supermarket"`
 	Price                float64      `json:"price"`
 	ListPrice            float64      `json:"listPrice"`
-	PriceWithoutMultiBuy float64      `json:"priceWithoutMultiBuy,omitempty"`
-	MultiBuyPrice        float64      `json:"multiBuyPrice,omitempty"`
+	PriceWithoutMultiBuy FlexFloat    `json:"priceWithoutMultiBuy,omitempty"`
+	MultiBuyPrice        FlexFloat    `json:"multiBuyPrice,omitempty"`
 	MultiBuyMinQty       int          `json:"multiBuyMinQty,omitempty"`
 	Link                 string       `json:"link"`
 	AddToCartLink        string       `json:"addToCartLink,omitempty"`
