@@ -181,7 +181,73 @@ func main() {
 		writeJSON(w, http.StatusOK, res)
 	})
 
-	// 7. Serve minimalist web frontend from ./web
+	// 7. Shopping Cart & Multi-Supermarket Comparison Engine
+	cart := engine.NewCartManager(agg)
+
+	mux.HandleFunc("GET /api/cart", func(w http.ResponseWriter, r *http.Request) {
+		items := cart.GetItems()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"totalItems": len(items),
+			"items":      items,
+		})
+	})
+
+	mux.HandleFunc("POST /api/cart/items", func(w http.ResponseWriter, r *http.Request) {
+		var item domain.CartItem
+		if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "JSON inválido: " + err.Error()})
+			return
+		}
+		items := cart.UpsertItem(item)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"totalItems": len(items),
+			"items":      items,
+		})
+	})
+
+	mux.HandleFunc("DELETE /api/cart", func(w http.ResponseWriter, r *http.Request) {
+		gk := strings.TrimSpace(r.URL.Query().Get("groupKey"))
+		if gk != "" {
+			items := cart.RemoveItem(gk)
+			writeJSON(w, http.StatusOK, map[string]any{
+				"totalItems": len(items),
+				"items":      items,
+			})
+			return
+		}
+		cart.Clear()
+		writeJSON(w, http.StatusOK, map[string]any{
+			"totalItems": 0,
+			"items":      []domain.CartItem{},
+		})
+	})
+
+	mux.HandleFunc("/api/cart/compare", func(w http.ResponseWriter, r *http.Request) {
+		var req domain.CartCompareRequest
+		if r.Method == http.MethodPost {
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "JSON inválido: " + err.Error()})
+				return
+			}
+		} else {
+			if rawStores := strings.TrimSpace(r.URL.Query().Get("stores")); rawStores != "" {
+				for _, s := range strings.Split(rawStores, ",") {
+					if trimmed := strings.TrimSpace(s); trimmed != "" {
+						req.Stores = append(req.Stores, trimmed)
+					}
+				}
+			}
+			req.ResolveMissing = r.URL.Query().Get("resolve") == "1" || r.URL.Query().Get("resolve") == "true"
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+		defer cancel()
+
+		res := cart.Compare(ctx, req)
+		writeJSON(w, http.StatusOK, res)
+	})
+
+	// 8. Serve minimalist web frontend from ./web
 	webDir := filepath.Join(".", "web")
 	fs := http.FileServer(http.Dir(webDir))
 	mux.Handle("/", fs)
@@ -197,7 +263,7 @@ func main() {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

@@ -80,12 +80,18 @@
           class="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs font-mono text-zinc-300 transition">
           { } Ver JSON
         </button>
+
+        <button id="btnOpenCart" type="button"
+          class="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs transition flex items-center gap-1.5 shadow-sm">
+          <span>🛒 Mi Carrito</span>
+          <span id="headerCartCount" class="px-1.5 py-0.2 rounded-full bg-zinc-950 text-emerald-400 font-mono text-[11px]">0</span>
+        </button>
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-1 flex flex-col gap-5">
+  <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-1 flex flex-col gap-5 pb-24">
 
     <!-- Search Bar + Quick Presets -->
     <section class="bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 sm:p-5 shadow-lg">
@@ -185,6 +191,95 @@
     <section id="resultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-12"></section>
   </main>
 
+  <!-- Floating Bottom Cart Bar -->
+  <div id="floatingCartBar" class="hidden fixed bottom-0 inset-x-0 z-40 bg-zinc-900/95 backdrop-blur-md border-t border-emerald-500/40 shadow-2xl">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div id="floatingCartThumbs" class="flex -space-x-2 overflow-hidden"></div>
+        <div>
+          <p id="floatingCartSummaryText" class="text-sm font-semibold text-white">0 productos en tu carrito</p>
+          <p id="floatingCartBestHint" class="text-xs text-emerald-400 font-mono">Agregá productos para comparar en qué súper te conviene comprar</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnClearCartBar" type="button"
+          class="px-3 py-2 rounded-xl border border-zinc-700 hover:bg-zinc-800 text-xs text-zinc-300 transition">
+          Vaciar
+        </button>
+        <button id="btnCompareCartBar" type="button"
+          class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-500/10">
+          <span>📊 Comparar Compra entre Súpers</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Supermarket Cart Comparison Modal -->
+  <div id="cartModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div class="bg-zinc-950 border border-zinc-800 rounded-2xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-zinc-800 bg-zinc-900/70 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <span>🛒 Comparador de Carrito Multi-Supermercado</span>
+            <span id="cartModalBadge" class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">0 prod</span>
+          </h2>
+          <p class="text-xs text-zinc-400">Simulá cuánto gastarías comprando tu lista en cada supermercado o dividiendo la compra en los más baratos</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnClearCartModal" type="button"
+            class="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-red-950/50 hover:border-red-800/60 hover:text-red-300 text-xs text-zinc-400 transition">
+            🗑️ Vaciar carrito
+          </button>
+          <button id="btnCloseCartModal" type="button"
+            class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white transition">
+            ✕ Cerrar
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Scrollable Body -->
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 flex flex-col gap-5">
+        <!-- Store Selector inside Modal -->
+        <div class="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-3.5">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold text-zinc-300">Supermercados seleccionados para comparar tu compra:</span>
+            <span class="text-[11px] text-zinc-500">Hacé clic para activar o quitar cadenas de la comparativa</span>
+          </div>
+          <div id="cartStoreChips" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <!-- Empty Cart State -->
+        <div id="cartEmptyState" class="hidden py-12 text-center flex-col items-center justify-center gap-2">
+          <p class="text-base font-semibold text-zinc-300">Tu carrito está vacío</p>
+          <p class="text-xs text-zinc-500 max-w-md">Buscá productos (ej: leche, arroz, fideos, aceite, yerba) y apretá el botón <strong class="text-emerald-400">"+ Agregar al Carrito"</strong> en las tarjetas para comparar cuánto gastarías en cada supermercado.</p>
+        </div>
+
+        <!-- Comparison Content -->
+        <div id="cartComparisonContent" class="flex flex-col gap-5">
+          <!-- 3 KPI Cards -->
+          <div id="cartKpiCards" class="grid grid-cols-1 md:grid-cols-3 gap-3.5"></div>
+
+          <!-- Supermarket Ranking Section -->
+          <div>
+            <h3 class="text-sm font-bold text-white mb-2.5 flex items-center gap-2">
+              <span>🏬 Cuánto gastarías por Supermercado (Ranking de tu selección)</span>
+            </h3>
+            <div id="cartStoreRanking" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
+          </div>
+
+          <!-- Product x Store Comparison Matrix -->
+          <div>
+            <h3 class="text-sm font-bold text-white mb-2.5 flex items-center gap-2">
+              <span>📋 Desglose Producto por Producto entre Supermercados</span>
+            </h3>
+            <div id="cartMatrixContainer" class="overflow-x-auto border border-zinc-800 rounded-xl bg-zinc-900/40"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Catalog with VTEX endpoints for Client-Side Global Search when Go Backend is not connected
     const DEFAULT_STORES = [
@@ -202,6 +297,12 @@
       { id: "super_mami", name: "Super Mami", engine: "scraper", badgeColor: "#e11d48", enabledByDefault: false, supportsEan: true }
     ];
 
+    let savedCart = [];
+    try {
+      savedCart = JSON.parse(localStorage.getItem('lita_cart_v1') || '[]');
+      if (!Array.isArray(savedCart)) savedCart = [];
+    } catch (_) { savedCart = []; }
+
     const state = {
       apiBase: localStorage.getItem('lita_api_base') || '',
       backendOnline: false,
@@ -213,6 +314,7 @@
       lastResponse: null,
       viewMode: 'grouped',
       activeStoreFilter: 'ALL',
+      cart: savedCart,
     };
 
     const fmtARS = new Intl.NumberFormat('es-AR', {
@@ -965,9 +1067,17 @@
       }
     }
 
+    function getCartQty(groupKey) {
+      const found = state.cart.find(c => c.groupKey === groupKey);
+      return found ? found.quantity : 0;
+    }
+
     function createGroupCard(g) {
+      const qty = getCartQty(g.groupKey);
       const card = document.createElement('article');
-      card.className = 'bg-zinc-900/70 border border-zinc-800/90 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-between gap-3 transition shadow-sm';
+      card.className = `bg-zinc-900/70 border ${
+        qty > 0 ? 'border-emerald-500/70 ring-1 ring-emerald-500/20' : 'border-zinc-800/90 hover:border-zinc-700'
+      } rounded-2xl p-4 flex flex-col justify-between gap-3 transition shadow-sm`;
 
       const hasMulti = g.storeCount > 1;
       const offersHtml = g.offers.map((o, idx) => {
@@ -1022,16 +1132,44 @@
           </div>
         </div>
 
-        <div class="flex flex-col gap-1 border-t border-zinc-800/60 pt-2">
-          ${offersHtml}
+        <div class="flex flex-col gap-2 border-t border-zinc-800/60 pt-2">
+          <div class="flex flex-col gap-1">
+            ${offersHtml}
+          </div>
+          <div class="pt-1.5" data-cart-slot></div>
         </div>
       `;
+
+      const slot = card.querySelector('[data-cart-slot]');
+      if (qty > 0) {
+        slot.innerHTML = `
+          <div class="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/40 rounded-xl px-2.5 py-1.5">
+            <button type="button" data-dec class="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-emerald-300 font-bold text-sm flex items-center justify-center">−</button>
+            <span class="text-xs font-bold text-emerald-300 font-mono">🛒 ${qty} en carrito</span>
+            <button type="button" data-inc class="w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center">+</button>
+          </div>
+        `;
+        slot.querySelector('[data-dec]').onclick = () => addGroupToCart(g, -1);
+        slot.querySelector('[data-inc]').onclick = () => addGroupToCart(g, 1);
+      } else {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'w-full py-2 rounded-xl bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-200 font-semibold text-xs transition flex items-center justify-center gap-1.5';
+        addBtn.innerHTML = `<span>+ Agregar al Carrito</span>`;
+        addBtn.onclick = () => addGroupToCart(g, 1);
+        slot.appendChild(addBtn);
+      }
+
       return card;
     }
 
     function createSingleCard(p) {
+      const gKey = p.normalizedEan ? `ean:${p.normalizedEan}` : `${p.supermarket}:${p.id}`;
+      const qty = getCartQty(gKey);
       const card = document.createElement('article');
-      card.className = 'bg-zinc-900/70 border border-zinc-800/90 hover:border-zinc-700 rounded-2xl p-4 flex flex-col justify-between gap-3 transition';
+      card.className = `bg-zinc-900/70 border ${
+        qty > 0 ? 'border-emerald-500/70 ring-1 ring-emerald-500/20' : 'border-zinc-800/90 hover:border-zinc-700'
+      } rounded-2xl p-4 flex flex-col justify-between gap-3 transition`;
 
       const promoBadge = (p.discounts && p.discounts.length > 0)
         ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">${p.discounts[0].headline}</span>`
@@ -1054,30 +1192,681 @@
             </div>
           </div>
         </div>
-        <div class="flex items-center justify-between border-t border-zinc-800/80 pt-3">
-          <div>
-            ${p.listPrice > p.price ? `<p class="text-xs text-zinc-500 line-through font-mono">${fmtARS.format(p.listPrice)}</p>` : ''}
-            <div class="flex items-center gap-2">
-              <span class="text-lg font-bold font-mono text-emerald-400">${fmtARS.format(p.price)}</span>
-              ${promoBadge}
+        <div class="flex flex-col gap-2 border-t border-zinc-800/80 pt-3">
+          <div class="flex items-center justify-between">
+            <div>
+              ${p.listPrice > p.price ? `<p class="text-xs text-zinc-500 line-through font-mono">${fmtARS.format(p.listPrice)}</p>` : ''}
+              <div class="flex items-center gap-2">
+                <span class="text-lg font-bold font-mono text-emerald-400">${fmtARS.format(p.price)}</span>
+                ${promoBadge}
+              </div>
             </div>
+            <a href="${p.link || '#'}" target="_blank" rel="noopener"
+              class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 transition">
+              Ver en tienda ↗
+            </a>
           </div>
-          <a href="${p.link || '#'}" target="_blank" rel="noopener"
-            class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 transition">
-            Ver en tienda ↗
-          </a>
+          <div data-cart-slot></div>
         </div>
       `;
+
+      const slot = card.querySelector('[data-cart-slot]');
+      if (qty > 0) {
+        slot.innerHTML = `
+          <div class="flex items-center justify-between bg-emerald-500/15 border border-emerald-500/40 rounded-xl px-2.5 py-1.5">
+            <button type="button" data-dec class="w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-emerald-300 font-bold text-sm flex items-center justify-center">−</button>
+            <span class="text-xs font-bold text-emerald-300 font-mono">🛒 ${qty} en carrito</span>
+            <button type="button" data-inc class="w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm flex items-center justify-center">+</button>
+          </div>
+        `;
+        slot.querySelector('[data-dec]').onclick = () => addSingleToCart(p, -1);
+        slot.querySelector('[data-inc]').onclick = () => addSingleToCart(p, 1);
+      } else {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'w-full py-2 rounded-xl bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-200 font-semibold text-xs transition flex items-center justify-center gap-1.5';
+        addBtn.innerHTML = `<span>+ Agregar al Carrito</span>`;
+        addBtn.onclick = () => addSingleToCart(p, 1);
+        slot.appendChild(addBtn);
+      }
+
       return card;
     }
 
+    // ---------------------------------------------------------
+    // Multi-Supermarket Shopping Cart & Comparison Engine
+    // ---------------------------------------------------------
+    function enrichOffersFromCatalogAndResponse(ean, currentOffers) {
+      const map = new Map();
+      (currentOffers || []).forEach(o => {
+        if (o && o.store && o.price > 0) {
+          const prev = map.get(o.store);
+          if (!prev || o.price < prev.price) map.set(o.store, o);
+        }
+      });
+
+      if (ean) {
+        const norm = normalizeEAN(ean) || ean;
+        // Check lastResponse groups
+        if (state.lastResponse && state.lastResponse.groups) {
+          const grp = state.lastResponse.groups.find(g => g.ean === norm || g.groupKey === `ean:${norm}`);
+          if (grp && grp.offers) {
+            grp.offers.forEach(o => {
+              const prev = map.get(o.store);
+              if (!prev || o.price < prev.price) map.set(o.store, o);
+            });
+          }
+        }
+        // Check loaded cloud catalog (8,224 products)
+        if (state.catalogProducts) {
+          state.catalogProducts.forEach(cp => {
+            if (cp.normalizedEan === norm || cp.ean === norm) {
+              const prev = map.get(cp.supermarket);
+              if (!prev || cp.price < prev.price) {
+                map.set(cp.supermarket, {
+                  store: cp.supermarket,
+                  price: cp.price,
+                  listPrice: cp.listPrice || cp.price,
+                  isAvailable: true,
+                  product: cp
+                });
+              }
+            }
+          });
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    function addGroupToCart(g, delta) {
+      const idx = state.cart.findIndex(c => c.groupKey === g.groupKey);
+      if (idx === -1) {
+        if (delta <= 0) return;
+        const offers = enrichOffersFromCatalogAndResponse(g.ean, g.offers);
+        const item = {
+          groupKey: g.groupKey,
+          ean: g.ean || '',
+          title: g.title,
+          brand: g.brand || '',
+          image: g.image || '',
+          quantity: delta,
+          offers
+        };
+        state.cart.push(item);
+        syncCartItemBackend(item);
+      } else {
+        state.cart[idx].quantity += delta;
+        state.cart[idx].offers = enrichOffersFromCatalogAndResponse(state.cart[idx].ean, state.cart[idx].offers);
+        if (state.cart[idx].quantity <= 0) {
+          const removed = state.cart.splice(idx, 1)[0];
+          syncCartItemBackend({ ...removed, quantity: 0 });
+        } else {
+          syncCartItemBackend(state.cart[idx]);
+        }
+      }
+      saveAndRefreshCartUI();
+    }
+
+    function addSingleToCart(p, delta) {
+      const gKey = p.normalizedEan ? `ean:${p.normalizedEan}` : `${p.supermarket}:${p.id}`;
+      const baseOffer = {
+        store: p.supermarket,
+        price: p.price,
+        listPrice: p.listPrice || p.price,
+        isAvailable: true,
+        product: p
+      };
+      const offers = enrichOffersFromCatalogAndResponse(p.normalizedEan || p.ean, [baseOffer]);
+      addGroupToCart({
+        groupKey: gKey,
+        ean: p.normalizedEan || p.ean || '',
+        title: p.name,
+        brand: p.brand || '',
+        image: p.image || '',
+        offers
+      }, delta);
+    }
+
+    function updateCartQtyByKey(groupKey, delta) {
+      const idx = state.cart.findIndex(c => c.groupKey === groupKey);
+      if (idx === -1) return;
+      state.cart[idx].quantity += delta;
+      if (state.cart[idx].quantity <= 0) {
+        const removed = state.cart.splice(idx, 1)[0];
+        syncCartItemBackend({ ...removed, quantity: 0 });
+      } else {
+        syncCartItemBackend(state.cart[idx]);
+      }
+      saveAndRefreshCartUI();
+    }
+
+    function clearCartAll() {
+      state.cart = [];
+      if (state.backendOnline) {
+        fetch(apiUrl('/api/cart'), { method: 'DELETE' }).catch(() => {});
+      }
+      saveAndRefreshCartUI();
+    }
+
+    function syncCartItemBackend(item) {
+      if (!state.backendOnline) return;
+      fetch(apiUrl('/api/cart/items'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      }).catch(() => {});
+    }
+
+    function compareCartClientSide(items, selectedStoresList) {
+      const badgeMap = {};
+      state.stores.forEach(s => { badgeMap[s.name] = s.badgeColor || '#10b981'; });
+      const selectedSet = new Set(selectedStoresList);
+      const totalItems = items.length;
+      let totalUnits = 0;
+
+      const storeLinesMap = {};
+      selectedStoresList.forEach(st => { storeLinesMap[st] = []; });
+
+      const splitAllocMap = {};
+      let optimalTotal = 0;
+      let coveredItems = 0;
+      const rowAvgSubtotal = [];
+      const matrix = [];
+
+      items.forEach((it, rowIdx) => {
+        const qty = Math.max(1, it.quantity || 1);
+        totalUnits += qty;
+
+        const enrichedOffers = enrichOffersFromCatalogAndResponse(it.ean, it.offers);
+        const offerByStore = {};
+        enrichedOffers.forEach(off => {
+          if (!selectedSet.has(off.store) || off.price <= 0) return;
+          if (!offerByStore[off.store] || off.price < offerByStore[off.store].price) {
+            offerByStore[off.store] = off;
+          }
+        });
+
+        let bestStore = '';
+        let bestUnitPrice = 0;
+        let bestSubtotal = 0;
+        let maxSubtotal = 0;
+        let sumSubtotal = 0;
+        let availCountRow = 0;
+
+        selectedStoresList.forEach(st => {
+          const off = offerByStore[st];
+          if (!off) return;
+          const sub = Math.round(off.price * qty * 100) / 100;
+          sumSubtotal += sub;
+          availCountRow++;
+          if (!bestStore || off.price < bestUnitPrice) {
+            bestStore = st;
+            bestUnitPrice = off.price;
+            bestSubtotal = sub;
+          }
+          if (sub > maxSubtotal) maxSubtotal = sub;
+        });
+
+        rowAvgSubtotal[rowIdx] = availCountRow > 0 ? Math.round((sumSubtotal / availCountRow) * 100) / 100 : 0;
+        if (availCountRow > 0) {
+          coveredItems++;
+          optimalTotal = Math.round((optimalTotal + bestSubtotal) * 100) / 100;
+        }
+
+        const byStoreRow = {};
+        selectedStoresList.forEach(st => {
+          const off = offerByStore[st];
+          if (!off) {
+            const line = { groupKey: it.groupKey, ean: it.ean, title: it.title, quantity: qty, available: false };
+            byStoreRow[st] = line;
+            storeLinesMap[st].push(line);
+            return;
+          }
+          const lp = Math.max(off.listPrice || off.price, off.price);
+          const sub = Math.round(off.price * qty * 100) / 100;
+          const listSub = Math.round(lp * qty * 100) / 100;
+          const isCheapest = bestUnitPrice > 0 && Math.abs(off.price - bestUnitPrice) < 0.01;
+          const line = {
+            groupKey: it.groupKey,
+            ean: it.ean,
+            title: it.title,
+            quantity: qty,
+            available: true,
+            unitPrice: off.price,
+            listPrice: lp,
+            subtotal: sub,
+            listSubtotal: listSub,
+            link: (off.product && off.product.link) || '',
+            image: it.image,
+            isCheapestForRow: isCheapest
+          };
+          byStoreRow[st] = line;
+          storeLinesMap[st].push(line);
+        });
+
+        if (bestStore) {
+          if (!splitAllocMap[bestStore]) {
+            splitAllocMap[bestStore] = {
+              store: bestStore,
+              badgeColor: badgeMap[bestStore],
+              itemCount: 0,
+              subtotal: 0,
+              lines: []
+            };
+          }
+          splitAllocMap[bestStore].itemCount++;
+          splitAllocMap[bestStore].subtotal = Math.round((splitAllocMap[bestStore].subtotal + bestSubtotal) * 100) / 100;
+          splitAllocMap[bestStore].lines.push(byStoreRow[bestStore]);
+        }
+
+        matrix.push({
+          groupKey: it.groupKey,
+          ean: it.ean,
+          title: it.title,
+          brand: it.brand,
+          image: it.image,
+          quantity: qty,
+          bestStore,
+          bestUnitPrice,
+          bestSubtotal,
+          maxSubtotal,
+          byStore: byStoreRow
+        });
+      });
+
+      const ranking = [];
+      selectedStoresList.forEach(st => {
+        const lines = storeLinesMap[st];
+        let availCount = 0;
+        let totalPrice = 0;
+        let totalListPrice = 0;
+        let estimatedFull = 0;
+        lines.forEach((ln, idx) => {
+          if (ln.available) {
+            availCount++;
+            totalPrice = Math.round((totalPrice + ln.subtotal) * 100) / 100;
+            totalListPrice = Math.round((totalListPrice + ln.listSubtotal) * 100) / 100;
+            estimatedFull = Math.round((estimatedFull + ln.subtotal) * 100) / 100;
+          } else {
+            estimatedFull = Math.round((estimatedFull + rowAvgSubtotal[idx]) * 100) / 100;
+          }
+        });
+        if (availCount === 0) return;
+        ranking.push({
+          store: st,
+          badgeColor: badgeMap[st],
+          availableCount: availCount,
+          missingCount: totalItems - availCount,
+          totalItems,
+          coveragePct: Math.round((availCount / totalItems) * 1000) / 10,
+          isComplete: availCount === totalItems,
+          totalPrice,
+          totalListPrice,
+          savedFromList: Math.max(0, Math.round((totalListPrice - totalPrice) * 100) / 100),
+          estimatedFullTotal: estimatedFull,
+          diffFromCheapest: 0,
+          diffPct: 0,
+          lines
+        });
+      });
+
+      ranking.sort((a, b) => {
+        if (a.availableCount !== b.availableCount) return b.availableCount - a.availableCount;
+        return a.totalPrice - b.totalPrice;
+      });
+
+      let bestSingleStore = '';
+      let bestSingleStorePrice = 0;
+      let worstSingleStore = '';
+      let worstSinglePrice = 0;
+
+      if (ranking.length > 0) {
+        const maxAvail = ranking[0].availableCount;
+        bestSingleStore = ranking[0].store;
+        bestSingleStorePrice = ranking[0].totalPrice;
+        ranking.forEach(r => {
+          if (r.availableCount === maxAvail && r.totalPrice > worstSinglePrice) {
+            worstSinglePrice = r.totalPrice;
+            worstSingleStore = r.store;
+          }
+          const refBase = r.availableCount === maxAvail ? ranking[0].totalPrice : ranking[0].estimatedFullTotal;
+          const targetVal = r.availableCount === maxAvail ? r.totalPrice : r.estimatedFullTotal;
+          if (targetVal > refBase && refBase > 0) {
+            r.diffFromCheapest = Math.round((targetVal - refBase) * 100) / 100;
+            r.diffPct = Math.round(((targetVal - refBase) / refBase) * 1000) / 10;
+          }
+        });
+      }
+
+      const allocations = Object.values(splitAllocMap).sort((a, b) => b.itemCount - a.itemCount || a.subtotal - b.subtotal);
+      const savedVsBestSingle = (ranking.length > 0 && ranking[0].availableCount === coveredItems && bestSingleStorePrice > optimalTotal)
+        ? Math.round((bestSingleStorePrice - optimalTotal) * 100) / 100 : 0;
+      const savedVsWorstSingle = (ranking.length > 0 && ranking[0].availableCount === coveredItems && worstSinglePrice > optimalTotal)
+        ? Math.round((worstSinglePrice - optimalTotal) * 100) / 100 : 0;
+      const savedVsWorstPct = worstSinglePrice > 0 ? Math.round((savedVsWorstSingle / worstSinglePrice) * 1000) / 10 : 0;
+
+      return {
+        totalItems,
+        totalUnits,
+        selectedStores: selectedStoresList,
+        storeRanking: ranking,
+        optimalSplit: {
+          totalPrice: optimalTotal,
+          coveredItems,
+          totalItems,
+          bestSingleStore,
+          bestSingleStorePrice,
+          worstSingleStore,
+          worstSinglePrice,
+          savedVsBestSingle,
+          savedVsWorstSingle,
+          savedVsWorstPct,
+          allocations
+        },
+        matrix
+      };
+    }
+
+    async function computeCartComparison() {
+      await loadCloudCatalog();
+      const selectedList = Array.from(state.selectedStores);
+      // Enrich cart items locally first
+      state.cart.forEach(it => {
+        it.offers = enrichOffersFromCatalogAndResponse(it.ean, it.offers);
+      });
+
+      if (state.backendOnline && state.cart.length > 0) {
+        try {
+          const res = await fetch(apiUrl('/api/cart/compare'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: state.cart,
+              stores: selectedList,
+              resolveMissing: false
+            })
+          });
+          if (res.ok) return await res.json();
+        } catch (err) {
+          console.warn('Fallback to client-side cart comparison:', err);
+        }
+      }
+      return compareCartClientSide(state.cart, selectedList);
+    }
+
+    function saveAndRefreshCartUI() {
+      localStorage.setItem('lita_cart_v1', JSON.stringify(state.cart));
+      const count = state.cart.length;
+      const totalUnits = state.cart.reduce((acc, c) => acc + (c.quantity || 1), 0);
+      el('headerCartCount').textContent = count;
+
+      const bar = el('floatingCartBar');
+      if (count > 0) {
+        bar.classList.remove('hidden');
+        el('floatingCartSummaryText').textContent = `${count} ${count === 1 ? 'producto' : 'productos'} (${totalUnits} ${totalUnits === 1 ? 'unidad' : 'unidades'}) en tu carrito`;
+
+        const thumbs = el('floatingCartThumbs');
+        thumbs.innerHTML = state.cart.slice(0, 6).map(c => `
+          <div class="w-9 h-9 rounded-full bg-white border-2 border-zinc-900 p-0.5 flex items-center justify-center overflow-hidden shadow">
+            <img src="${c.image}" alt="" class="max-h-full max-w-full object-contain" />
+          </div>
+        `).join('');
+
+        const cmp = compareCartClientSide(state.cart, Array.from(state.selectedStores));
+        if (cmp.storeRanking && cmp.storeRanking.length > 0) {
+          const top = cmp.storeRanking[0];
+          el('floatingCartBestHint').textContent = `🏆 Mejor opción hoy: ${top.store} (${top.availableCount}/${top.totalItems} prod) por ${fmtARS.format(top.totalPrice)} · Compra dividida: ${fmtARS.format(cmp.optimalSplit.totalPrice)}`;
+        } else {
+          el('floatingCartBestHint').textContent = `Hacé clic en "Comparar Compra" para ver cuánto gastarías en cada supermercado`;
+        }
+      } else {
+        bar.classList.add('hidden');
+      }
+
+      renderResults();
+      if (!el('cartModal').classList.contains('hidden')) {
+        renderCartModal();
+      }
+    }
+
+    async function renderCartModal() {
+      const count = state.cart.length;
+      el('cartModalBadge').textContent = `${count} ${count === 1 ? 'producto' : 'productos'}`;
+
+      // Render Store selector chips inside Modal
+      const chipBox = el('cartStoreChips');
+      chipBox.innerHTML = '';
+      state.stores.forEach(s => {
+        const active = state.selectedStores.has(s.name);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `px-2.5 py-1 rounded-lg text-xs font-medium border transition flex items-center gap-1.5 ${
+          active
+            ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
+            : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+        }`;
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full" style="background:${s.badgeColor || '#10b981'}"></span>
+          <span>${s.name}</span>
+        `;
+        btn.onclick = () => {
+          if (state.selectedStores.has(s.name)) state.selectedStores.delete(s.name);
+          else state.selectedStores.add(s.name);
+          renderStoreChips();
+          saveAndRefreshCartUI();
+        };
+        chipBox.appendChild(btn);
+      });
+
+      if (count === 0) {
+        el('cartEmptyState').classList.remove('hidden');
+        el('cartEmptyState').classList.add('flex');
+        el('cartComparisonContent').classList.add('hidden');
+        return;
+      }
+
+      el('cartEmptyState').classList.add('hidden');
+      el('cartEmptyState').classList.remove('flex');
+      el('cartComparisonContent').classList.remove('hidden');
+
+      const cmp = await computeCartComparison();
+      const opt = cmp.optimalSplit || {};
+      const topStore = (cmp.storeRanking && cmp.storeRanking[0]) || null;
+
+      // 1. Render 3 KPI Cards
+      el('cartKpiCards').innerHTML = `
+        <div class="bg-zinc-900/80 border border-emerald-500/40 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <span class="text-[11px] font-mono uppercase text-emerald-400 font-semibold">🏆 Mejor Súper Único (1 sola compra)</span>
+            <h4 class="text-xl font-bold text-white mt-1">${topStore ? topStore.store : 'Sin coincidencias'}</h4>
+            <p class="text-xs text-zinc-400 mt-0.5">
+              ${topStore ? `Cubre <strong class="text-white">${topStore.availableCount} de ${topStore.totalItems}</strong> productos (${topStore.coveragePct}%)` : 'Seleccioná más supermercados arriba'}
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-zinc-800 flex items-baseline justify-between">
+            <span class="text-xs text-zinc-400">Total a gastar:</span>
+            <span class="text-2xl font-bold font-mono text-emerald-400">${topStore ? fmtARS.format(topStore.totalPrice) : '$0'}</span>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900/80 border border-sky-500/40 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <span class="text-[11px] font-mono uppercase text-sky-400 font-semibold">⚡ Compra Inteligente (Dividida en los más baratos)</span>
+            <h4 class="text-xl font-bold text-white mt-1">${fmtARS.format(opt.totalPrice || 0)}</h4>
+            <p class="text-xs text-zinc-400 mt-0.5">
+              ${(opt.allocations || []).map(a => `<strong class="text-zinc-200">${a.store}</strong> (${a.itemCount} prod: ${fmtARS.format(a.subtotal)})`).join(' + ') || '—'}
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-zinc-800 flex items-baseline justify-between">
+            <span class="text-xs text-zinc-400">Ahorro extra vs 1 solo súper:</span>
+            <span class="text-sm font-bold font-mono text-sky-400">${opt.savedVsBestSingle > 0 ? fmtARS.format(opt.savedVsBestSingle) : '$0 (igual al mejor)'}</span>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900/80 border border-amber-500/30 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <span class="text-[11px] font-mono uppercase text-amber-400 font-semibold">💰 Ahorro Máximo Detectado</span>
+            <h4 class="text-xl font-bold text-amber-300 mt-1">
+              ${opt.savedVsWorstSingle > 0 ? `${fmtARS.format(opt.savedVsWorstSingle)} (${opt.savedVsWorstPct}%)` : '$0'}
+            </h4>
+            <p class="text-xs text-zinc-400 mt-0.5">
+              ${opt.worstSingleStore ? `Comparado contra comprar en <strong class="text-zinc-200">${opt.worstSingleStore}</strong> (${fmtARS.format(opt.worstSinglePrice)})` : 'Comparando entre tus cadenas seleccionadas'}
+            </p>
+          </div>
+          <div class="mt-3 pt-2.5 border-t border-zinc-800 flex items-baseline justify-between text-xs text-zinc-400">
+            <span>Unidades totales: <strong class="text-white">${cmp.totalUnits}</strong></span>
+            <span>Súpers comparados: <strong class="text-white">${(cmp.storeRanking || []).length}</strong></span>
+          </div>
+        </div>
+      `;
+
+      // 2. Render Store Ranking Cards
+      const rankContainer = el('cartStoreRanking');
+      if (!cmp.storeRanking || cmp.storeRanking.length === 0) {
+        rankContainer.innerHTML = `<div class="col-span-full text-xs text-zinc-500 py-6 text-center">Ninguno de los supermercados seleccionados tiene ofertas para estos productos.</div>`;
+      } else {
+        rankContainer.innerHTML = cmp.storeRanking.map((r, idx) => {
+          const isTop = idx === 0;
+          const linesHtml = r.lines.map(ln => `
+            <div class="flex items-center justify-between text-xs py-1 border-b border-zinc-800/50 last:border-0">
+              <span class="truncate pr-2 ${ln.available ? 'text-zinc-300' : 'text-zinc-600 line-through'}">
+                ${ln.quantity}× ${ln.title}
+              </span>
+              <span class="font-mono shrink-0 ${
+                !ln.available ? 'text-red-400/80 text-[11px]' : ln.isCheapestForRow ? 'text-emerald-400 font-bold' : 'text-zinc-200'
+              }">
+                ${ln.available ? fmtARS.format(ln.subtotal) : 'Sin stock'}
+              </span>
+            </div>
+          `).join('');
+
+          return `
+            <div class="rounded-xl p-4 border flex flex-col justify-between gap-3 ${
+              isTop ? 'bg-emerald-950/20 border-emerald-500/60' : 'bg-zinc-900/60 border-zinc-800'
+            }">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full" style="background:${r.badgeColor || '#10b981'}"></span>
+                    <h4 class="font-bold text-sm text-white">${idx + 1}. ${r.store}</h4>
+                    ${isTop ? `<span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-zinc-950 font-bold">Más conveniente</span>` : ''}
+                  </div>
+                  <span class="text-[11px] font-mono px-2 py-0.5 rounded ${
+                    r.isComplete ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                  }">
+                    ${r.availableCount}/${r.totalItems} prod (${r.coveragePct}%)
+                  </span>
+                </div>
+
+                <div class="w-full h-1.5 rounded-full bg-zinc-800 overflow-hidden mb-3">
+                  <div class="h-full ${r.isComplete ? 'bg-emerald-500' : 'bg-amber-400'}" style="width:${r.coveragePct}%"></div>
+                </div>
+
+                <div class="flex items-baseline justify-between mb-2">
+                  <div>
+                    <span class="text-xs text-zinc-400">Total en ${r.store}:</span>
+                    ${!r.isComplete ? `<p class="text-[11px] text-amber-300/90 font-mono">Total estimado c/faltantes: ${fmtARS.format(r.estimatedFullTotal)}</p>` : ''}
+                  </div>
+                  <div class="text-right">
+                    <span class="text-xl font-bold font-mono ${isTop ? 'text-emerald-400' : 'text-white'}">${fmtARS.format(r.totalPrice)}</span>
+                    ${r.diffFromCheapest > 0 ? `<p class="text-[11px] font-mono text-red-400">+${fmtARS.format(r.diffFromCheapest)} (+${r.diffPct}%)</p>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-zinc-800/80 pt-2 max-h-36 overflow-y-auto">
+                ${linesHtml}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Render Product x Store Matrix Table
+      const activeStoresWithData = (cmp.storeRanking || []).map(r => r.store);
+      const storesCols = activeStoresWithData.length > 0 ? activeStoresWithData : cmp.selectedStores;
+
+      const headerCols = storesCols.map(st => `
+        <th class="px-3 py-2.5 text-right text-xs font-semibold text-zinc-300 whitespace-nowrap border-b border-zinc-800">${st}</th>
+      `).join('');
+
+      const rowsHtml = (cmp.matrix || []).map(row => {
+        const cells = storesCols.map(st => {
+          const ln = row.byStore && row.byStore[st];
+          if (!ln || !ln.available) {
+            return `<td class="px-3 py-2.5 text-right text-[11px] font-mono text-zinc-600 border-b border-zinc-800/60">—</td>`;
+          }
+          return `
+            <td class="px-3 py-2.5 text-right font-mono text-xs border-b border-zinc-800/60 ${
+              ln.isCheapestForRow ? 'bg-emerald-500/10 text-emerald-300 font-bold' : 'text-zinc-200'
+            }">
+              <div>${fmtARS.format(ln.subtotal)}</div>
+              ${row.quantity > 1 ? `<div class="text-[10px] text-zinc-500">${fmtARS.format(ln.unitPrice)} c/u</div>` : ''}
+            </td>
+          `;
+        }).join('');
+
+        return `
+          <tr class="hover:bg-zinc-900/60">
+            <td class="px-3 py-2.5 border-b border-zinc-800/60">
+              <div class="flex items-center gap-2.5 min-w-[200px]">
+                <img src="${row.image}" alt="" class="w-9 h-9 rounded bg-white p-0.5 object-contain shrink-0" />
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-white truncate max-w-[220px]">${row.title}</p>
+                  ${row.ean ? `<p class="text-[10px] font-mono text-zinc-500">EAN ${row.ean}</p>` : ''}
+                </div>
+              </div>
+            </td>
+            <td class="px-3 py-2.5 text-center border-b border-zinc-800/60 whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded-lg px-1.5 py-0.5">
+                <button type="button" onclick="updateCartQtyByKey('${row.groupKey}', -1)" class="w-5 h-5 rounded hover:bg-zinc-800 text-zinc-300 font-bold text-xs">−</button>
+                <span class="text-xs font-mono font-bold text-emerald-400 px-1">${row.quantity}</span>
+                <button type="button" onclick="updateCartQtyByKey('${row.groupKey}', 1)" class="w-5 h-5 rounded hover:bg-zinc-800 text-zinc-300 font-bold text-xs">+</button>
+              </div>
+            </td>
+            ${cells}
+          </tr>
+        `;
+      }).join('');
+
+      el('cartMatrixContainer').innerHTML = `
+        <table class="w-full border-collapse text-left">
+          <thead class="bg-zinc-900/90">
+            <tr>
+              <th class="px-3 py-2.5 text-xs font-semibold text-zinc-300 border-b border-zinc-800">Producto</th>
+              <th class="px-3 py-2.5 text-center text-xs font-semibold text-zinc-300 border-b border-zinc-800">Cant.</th>
+              ${headerCols}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      `;
+    }
+
+    el('btnOpenCart').addEventListener('click', () => {
+      el('cartModal').classList.remove('hidden');
+      renderCartModal();
+    });
+    el('btnCompareCartBar').addEventListener('click', () => {
+      el('cartModal').classList.remove('hidden');
+      renderCartModal();
+    });
+    el('btnCloseCartModal').addEventListener('click', () => {
+      el('cartModal').classList.add('hidden');
+    });
+    el('btnClearCartBar').addEventListener('click', () => clearCartAll());
+    el('btnClearCartModal').addEventListener('click', () => clearCartAll());
+
+    window.updateCartQtyByKey = updateCartQtyByKey;
     window.searchByEan = function(ean) {
       el('searchInput').value = ean;
       el('searchInput').dispatchEvent(new Event('input'));
       runSearch();
     };
 
-    initApp();
+    initApp().then(() => saveAndRefreshCartUI());
   </script>
 </body>
 </html>

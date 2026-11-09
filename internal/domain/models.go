@@ -175,3 +175,105 @@ type BranchSelection struct {
 	SellerID string `json:"sellerId,omitempty"`
 	RegionID string `json:"regionId,omitempty"`
 }
+
+// CartItem represents a product added to the user's shopping cart.
+type CartItem struct {
+	GroupKey string       `json:"groupKey"`
+	EAN      string       `json:"ean,omitempty"`
+	Title    string       `json:"title"`
+	Brand    string       `json:"brand,omitempty"`
+	Image    string       `json:"image,omitempty"`
+	Quantity int          `json:"quantity"`
+	Offers   []StoreOffer `json:"offers,omitempty"`
+}
+
+// CartCompareRequest is the payload for POST /api/cart/compare.
+type CartCompareRequest struct {
+	Items          []CartItem `json:"items"`
+	Stores         []string   `json:"stores,omitempty"`
+	ResolveMissing bool       `json:"resolveMissing,omitempty"`
+}
+
+// StoreCartLine represents how much a specific cart item costs in a specific store.
+type StoreCartLine struct {
+	GroupKey         string  `json:"groupKey"`
+	EAN              string  `json:"ean,omitempty"`
+	Title            string  `json:"title"`
+	Quantity         int     `json:"quantity"`
+	Available        bool    `json:"available"`
+	UnitPrice        float64 `json:"unitPrice,omitempty"`
+	ListPrice        float64 `json:"listPrice,omitempty"`
+	Subtotal         float64 `json:"subtotal,omitempty"`
+	ListSubtotal     float64 `json:"listSubtotal,omitempty"`
+	Link             string  `json:"link,omitempty"`
+	Image            string  `json:"image,omitempty"`
+	IsCheapestForRow bool    `json:"isCheapestForRow"`
+}
+
+// StoreCartSummary summarizes the total cost and coverage of buying the cart at a single store.
+type StoreCartSummary struct {
+	Store              string          `json:"store"`
+	BadgeColor         string          `json:"badgeColor,omitempty"`
+	AvailableCount     int             `json:"availableCount"`
+	MissingCount       int             `json:"missingCount"`
+	TotalItems         int             `json:"totalItems"`
+	CoveragePct        float64         `json:"coveragePct"`
+	IsComplete         bool            `json:"isComplete"`
+	TotalPrice         float64         `json:"totalPrice"`
+	TotalListPrice     float64         `json:"totalListPrice"`
+	SavedFromList      float64         `json:"savedFromList"`
+	EstimatedFullTotal float64         `json:"estimatedFullTotal"`
+	DiffFromCheapest   float64         `json:"diffFromCheapest"`
+	DiffPct            float64         `json:"diffPct"`
+	Lines              []StoreCartLine `json:"lines"`
+}
+
+// SplitStoreAllocation groups the products that should be bought at a specific store in an optimal split purchase.
+type SplitStoreAllocation struct {
+	Store      string          `json:"store"`
+	BadgeColor string          `json:"badgeColor,omitempty"`
+	ItemCount  int             `json:"itemCount"`
+	Subtotal   float64         `json:"subtotal"`
+	Lines      []StoreCartLine `json:"lines"`
+}
+
+// OptimalSplitSummary represents buying each item at the cheapest selected supermarket.
+type OptimalSplitSummary struct {
+	TotalPrice           float64                `json:"totalPrice"`
+	CoveredItems         int                    `json:"coveredItems"`
+	TotalItems           int                    `json:"totalItems"`
+	BestSingleStore      string                 `json:"bestSingleStore,omitempty"`
+	BestSingleStorePrice float64                `json:"bestSingleStorePrice,omitempty"`
+	WorstSingleStore     string                 `json:"worstSingleStore,omitempty"`
+	WorstSinglePrice     float64                `json:"worstSinglePrice,omitempty"`
+	SavedVsBestSingle    float64                `json:"savedVsBestSingle"`
+	SavedVsWorstSingle   float64                `json:"savedVsWorstSingle"`
+	SavedVsWorstPct      float64                `json:"savedVsWorstPct"`
+	Allocations          []SplitStoreAllocation `json:"allocations"`
+}
+
+// ProductMatrixRow shows a single cart product across all selected stores.
+type ProductMatrixRow struct {
+	GroupKey      string                   `json:"groupKey"`
+	EAN           string                   `json:"ean,omitempty"`
+	Title         string                   `json:"title"`
+	Brand         string                   `json:"brand,omitempty"`
+	Image         string                   `json:"image,omitempty"`
+	Quantity      int                      `json:"quantity"`
+	BestStore     string                   `json:"bestStore,omitempty"`
+	BestUnitPrice float64                  `json:"bestUnitPrice,omitempty"`
+	BestSubtotal  float64                  `json:"bestSubtotal,omitempty"`
+	MaxSubtotal   float64                  `json:"maxSubtotal,omitempty"`
+	ByStore       map[string]StoreCartLine `json:"byStore"`
+}
+
+// CartCompareResponse is returned by POST /api/cart/compare and GET /api/cart/compare.
+type CartCompareResponse struct {
+	TotalItems     int                `json:"totalItems"`
+	TotalUnits     int                `json:"totalUnits"`
+	SelectedStores []string           `json:"selectedStores"`
+	StoreRanking   []StoreCartSummary `json:"storeRanking"`
+	OptimalSplit   OptimalSplitSummary `json:"optimalSplit"`
+	Matrix         []ProductMatrixRow `json:"matrix"`
+}
+
