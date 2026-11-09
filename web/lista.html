@@ -5,16 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Lita — Mi Lista de Compra (Modo Chango)</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
+    }
+    .font-receipt {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     .check-bounce {
       transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .check-bounce:active {
       transform: scale(0.92);
+    }
+
+    /* Exact ReceiptPrinter Machine & Screen Styles from ReceiptPrinter.tsx */
+    .printer-machine {
+      --printer-inset: 0.75rem;
+      --printer-radius: 1.5rem;
+      --printer-inner-radius: calc(var(--printer-radius) - var(--printer-inset));
+      position: relative;
+      isolation: isolate;
+      width: 100%;
+      overflow: hidden;
+      border-radius: var(--printer-radius);
+      border: 1px solid #1c1c1f;
+      background: linear-gradient(180deg, #2d2d30 0%, #242427 100%);
+      padding: var(--printer-inset);
+      padding-bottom: 2rem;
+      box-shadow:
+        0 20px 36px -20px rgba(0, 0, 0, 0.75),
+        0 6px 14px -8px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.65);
+    }
+
+    .printer-slot {
+      position: absolute;
+      left: 1.5rem;
+      right: 1.5rem;
+      bottom: 0.75rem;
+      z-index: 40;
+      height: 0.5rem;
+      border-radius: 0.25rem;
+      border: 1px solid #0d0d0f;
+      background: #111113;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    .printer-screen {
+      position: relative;
+      z-index: 10;
+      isolation: isolate;
+      overflow: hidden;
+      border-radius: 0.75rem;
+      border: 1px solid #141416;
+      background: #18181b;
+      padding: 1rem 1.125rem;
+      color: #f4f4f5;
+      box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.85),
+        inset 0 0 24px 4px rgba(0, 0, 0, 0.52);
+    }
+
+    .tactile-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #e4e4e7;
+      background: linear-gradient(180deg, #3a3a3e 0%, #2e2e32 100%);
+      border: 1px solid #18181b;
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition: transform 0.1s ease, filter 0.15s ease;
+    }
+    .tactile-btn:hover {
+      filter: brightness(1.08);
+    }
+    .tactile-btn:active {
+      transform: translateY(1px);
+    }
+
+    .receipt-paper-shadow {
+      filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.42));
+    }
+
+    .receipt-dashed-hr {
+      border: 0;
+      border-top: 1px dashed #d4d4d8;
+      margin: 1rem 0;
+    }
+
+    @keyframes laserScan {
+      0% { top: 8%; opacity: 0.4; }
+      50% { top: 88%; opacity: 1; }
+      100% { top: 8%; opacity: 0.4; }
+    }
+    .scan-laser {
+      animation: laserScan 2.4s ease-in-out infinite;
     }
   </style>
 </head>
@@ -91,7 +188,7 @@
   </header>
 
   <!-- Main Mobile Checklist -->
-  <main class="max-w-lg w-full mx-auto px-3.5 py-4 flex-1 flex flex-col gap-3 pb-24">
+  <main class="max-w-lg w-full mx-auto px-3.5 py-4 flex-1 flex flex-col gap-3 pb-28">
     <!-- Completion Banner -->
     <div id="completedBanner" class="hidden bg-emerald-500/15 border border-emerald-500/50 rounded-2xl p-4 text-center flex-col items-center gap-1 shadow-lg">
       <span class="text-2xl">🎉</span>
@@ -103,8 +200,277 @@
     <div id="itemsListContainer" class="flex flex-col gap-2.5"></div>
   </main>
 
+  <!-- Sticky Bottom Bar: Finalizar Listado Button -->
+  <div id="bottomFinishBar" class="fixed bottom-0 inset-x-0 z-30 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 px-4 py-3 shadow-2xl">
+    <div class="max-w-lg mx-auto flex items-center justify-between gap-3">
+      <div class="min-w-0">
+        <p id="bottomBarSummaryTitle" class="text-xs font-bold text-white truncate">A pagar en caja: $0</p>
+        <p id="bottomBarSummarySub" class="text-[11px] font-mono text-zinc-400 truncate">0 en chango · 0 pendientes</p>
+      </div>
+      <button id="btnFinishList" type="button"
+        class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-zinc-950 font-extrabold text-xs sm:text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0">
+        <span>🧾 Finalizar listado</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- RECEIPT PRINTER MODAL (Exact implementation of ReceiptPrinter.tsx)    -->
+  <!-- ===================================================================== -->
+  <div id="receiptPrinterModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md overflow-y-auto py-6 px-3 flex flex-col items-center justify-start">
+    <!-- ReceiptPrinter.Root -->
+    <section
+      id="receiptPrinterRoot"
+      aria-label="Receipt printer"
+      data-stage="processing"
+      class="relative isolate flex w-full max-w-sm flex-col items-center my-auto"
+    >
+      <!-- ReceiptPrinter.Machine -->
+      <div class="printer-machine">
+        <!-- ReceiptPrinter.Header -->
+        <div class="relative z-10 flex h-11 items-start justify-between">
+          <!-- Printer Logo (Exact 4-point star cutout square from reference image) -->
+          <div class="w-6 h-6 rounded-[4px] bg-zinc-400/25 flex items-center justify-center overflow-hidden relative">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 text-zinc-400" fill="currentColor">
+              <path d="M0 0h24v24H0V0zm15.5 11.5c-2.5 0-4 1.5-4 4 0-2.5-1.5-4-4-4 2.5 0 4-1.5 4-4 0 2.5 1.5 4 4 4z" fill-rule="evenodd"/>
+            </svg>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- TactileButton (Volver a la lista / Home) -->
+            <button id="btnClosePrinterModal" type="button" class="tactile-btn">
+              <svg aria-hidden="true" width="13" height="13" viewBox="0 0 256 256" fill="currentColor">
+                <path d="M224,115.55V208a16,16,0,0,1-16,16H168a16,16,0,0,1-16-16V168a8,8,0,0,0-8-8H112a8,8,0,0,0-8,8v40a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V115.55a16,16,0,0,1,5.17-11.78l80-75.48.11-.11a16,16,0,0,1,21.53,0,1.14,1.14,0,0,0,.11.11l80,75.48A16,16,0,0,1,224,115.55Z"/>
+              </svg>
+              <span>Lista</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ReceiptPrinter.Screen -->
+        <div class="printer-screen">
+          <div class="relative z-10 space-y-4">
+            <div class="flex justify-between items-start gap-2">
+              <div class="min-w-0">
+                <p id="printerScreenStore" class="font-bold text-base text-white truncate">Supermercado</p>
+                <p id="printerScreenSub" class="text-xs text-zinc-400 mt-0.5">0 en chango · 0 pendientes</p>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="block text-[11px] text-zinc-400">Total</span>
+                <strong id="printerScreenTotal" class="text-xl font-extrabold text-white tracking-tight">$0</strong>
+              </div>
+            </div>
+
+            <!-- ReceiptPrinter.Status -->
+            <div class="flex min-w-0 items-center gap-2 pt-0.5">
+              <span id="printerStatusIcon" aria-hidden="true" class="relative grid w-5 h-5 shrink-0 place-items-center">
+                <!-- Populated dynamically according to stage -->
+              </span>
+              <div aria-live="polite" role="status" class="grid min-w-0 flex-1 items-center">
+                <div id="printerStatusText" class="truncate font-medium text-zinc-300 text-xs leading-none transition-all duration-200">
+                  Procesando tu listado...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Printer Slot -->
+        <div aria-hidden="true" class="printer-slot"></div>
+      </div>
+
+      <!-- ReceiptPrinter.Output -->
+      <div id="receiptPrinterOutput" class="relative z-50 -mt-4 w-[calc(84%+3rem)] max-w-full overflow-hidden px-4 pb-6">
+        <!-- Slot exit top shadow blur -->
+        <div id="receiptSlotBlur" aria-hidden="true" class="hidden pointer-events-none absolute inset-x-6 -top-1 z-20 h-2 bg-black/80 blur-[6px]"></div>
+
+        <!-- Animated Paper Wrapper -->
+        <div id="receiptAnimatedWrapper" class="relative isolate receipt-paper-shadow" style="opacity: 0; transform: translateY(calc(-100% + 2px));">
+          <!-- ReceiptPrinter.Paper -->
+          <article
+            id="receiptPrinterPaper"
+            class="relative z-10 min-h-80 bg-[#fafafa] px-6 pt-7 pb-9 font-receipt text-[#18181b]"
+          >
+            <!-- Top Receipt Logo (Matches reference image_2.png) -->
+            <div class="flex flex-col items-center justify-center mb-5">
+              <div class="w-11 h-11 bg-[#27272a] flex items-center justify-center relative overflow-hidden">
+                <svg viewBox="0 0 40 40" class="w-11 h-11" fill="none">
+                  <rect width="40" height="40" fill="#27272a"/>
+                  <path d="M27 14C27 21.5 21.5 27 14 27C21.5 27 27 32.5 27 40C27 32.5 32.5 27 40 27C32.5 27 27 21.5 27 14Z" fill="#fafafa"/>
+                </svg>
+              </div>
+              <span class="text-[10px] tracking-[0.2em] uppercase text-zinc-400 mt-2 font-bold">LITA CHECKOUT TICKET</span>
+            </div>
+
+            <hr class="receipt-dashed-hr" />
+
+            <!-- Section 1: Items in Physical Cart (A PAGAR) -->
+            <div class="mb-2">
+              <p class="text-[10px] uppercase tracking-wider text-zinc-400 font-bold mb-2">
+                🛒 EN TU CHANGO (A PAGAR EN CAJA)
+              </p>
+              <div id="receiptCheckedItemsList" class="space-y-2.5 text-xs"></div>
+            </div>
+
+            <hr class="receipt-dashed-hr" />
+
+            <!-- Section 2: Totals to Pay -->
+            <dl class="space-y-1.5 text-xs">
+              <div class="flex justify-between text-zinc-500">
+                <dt>Subtotal en chango</dt>
+                <dd id="receiptSubtotalAmount">$0</dd>
+              </div>
+              <div class="flex justify-between text-zinc-500">
+                <dt>Unidades en chango</dt>
+                <dd id="receiptUnitsChecked">0 un.</dd>
+              </div>
+              <div class="flex justify-between items-baseline pt-2 font-extrabold text-sm text-[#111113]">
+                <dt class="tracking-wide">TOTAL A PAGAR</dt>
+                <dd id="receiptTotalPaidAmount" class="text-lg">$0</dd>
+              </div>
+            </dl>
+
+            <!-- Section 3: Pending / Unchecked Items -->
+            <div id="receiptPendingSection" class="mt-4">
+              <hr class="receipt-dashed-hr" />
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] uppercase tracking-wider text-amber-700 font-bold">
+                  ⏳ PRODUCTOS PENDIENTES (FALTAN)
+                </p>
+                <span id="receiptPendingCountBadge" class="text-[10px] font-bold text-amber-700">0</span>
+              </div>
+              <div id="receiptPendingItemsList" class="space-y-1.5 text-[11px] text-zinc-500"></div>
+              <div id="receiptPendingSubtotalRow" class="flex justify-between pt-2 mt-2 border-t border-dashed border-zinc-200 text-[11px] font-bold text-zinc-600">
+                <span>Total pendiente sin comprar</span>
+                <span id="receiptPendingTotalAmount">$0</span>
+              </div>
+            </div>
+
+            <hr class="receipt-dashed-hr" />
+
+            <!-- Section 4: Order Metadata -->
+            <dl class="space-y-1.5 text-[11px]">
+              <div class="flex justify-between">
+                <dt class="text-zinc-400">Listado</dt>
+                <dd id="receiptOrderCode" class="text-zinc-800 font-semibold">ORD-2048</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-zinc-400">Supermercado</dt>
+                <dd id="receiptStoreMeta" class="text-zinc-800 font-semibold">Carrefour</dd>
+              </div>
+              <div class="flex justify-between">
+                <dt class="text-zinc-400">Fecha</dt>
+                <dd id="receiptDateMeta" class="text-zinc-800">09 NOV 2026 · 14:32</dd>
+              </div>
+            </dl>
+
+            <!-- Section 5: Barcode -->
+            <div class="mt-6 flex flex-col items-center">
+              <svg class="w-48 h-11 text-[#18181b]" viewBox="0 0 220 48" fill="currentColor" aria-hidden="true">
+                <rect x="2" y="0" width="2" height="44"/><rect x="6" y="0" width="1" height="44"/><rect x="10" y="0" width="3" height="44"/><rect x="16" y="0" width="1" height="44"/><rect x="20" y="0" width="2" height="44"/><rect x="25" y="0" width="4" height="44"/><rect x="32" y="0" width="1" height="44"/><rect x="35" y="0" width="2" height="44"/><rect x="40" y="0" width="1" height="44"/><rect x="44" y="0" width="3" height="44"/><rect x="50" y="0" width="2" height="44"/><rect x="55" y="0" width="1" height="44"/><rect x="58" y="0" width="4" height="44"/><rect x="65" y="0" width="1" height="44"/><rect x="69" y="0" width="2" height="44"/><rect x="74" y="0" width="3" height="44"/><rect x="80" y="0" width="1" height="44"/><rect x="83" y="0" width="2" height="44"/><rect x="88" y="0" width="4" height="44"/><rect x="95" y="0" width="1" height="44"/><rect x="98" y="0" width="2" height="44"/><rect x="103" y="0" width="3" height="44"/><rect x="109" y="0" width="1" height="44"/><rect x="113" y="0" width="2" height="44"/><rect x="118" y="0" width="1" height="44"/><rect x="122" y="0" width="4" height="44"/><rect x="129" y="0" width="2" height="44"/><rect x="134" y="0" width="1" height="44"/><rect x="138" y="0" width="3" height="44"/><rect x="144" y="0" width="2" height="44"/><rect x="149" y="0" width="1" height="44"/><rect x="153" y="0" width="4" height="44"/><rect x="160" y="0" width="1" height="44"/><rect x="164" y="0" width="2" height="44"/><rect x="169" y="0" width="3" height="44"/><rect x="175" y="0" width="1" height="44"/><rect x="179" y="0" width="2" height="44"/><rect x="184" y="0" width="4" height="44"/><rect x="191" y="0" width="1" height="44"/><rect x="195" y="0" width="2" height="44"/><rect x="200" y="0" width="3" height="44"/><rect x="206" y="0" width="1" height="44"/><rect x="210" y="0" width="2" height="44"/><rect x="215" y="0" width="3" height="44"/>
+              </svg>
+              <span id="receiptBarcodeLabel" class="text-[10px] tracking-[0.25em] text-zinc-400 mt-1">ORD 2048</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <!-- Post-Printing Actions (Visible when stage === "complete") -->
+      <div id="postPrintActions" class="hidden w-full px-4 pt-1 pb-4 flex-col gap-2.5 transition-all duration-300">
+        <button id="btnOpenCameraCompare" type="button"
+          class="w-full py-3.5 px-5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-zinc-950 font-extrabold text-sm shadow-xl shadow-emerald-500/25 transition flex items-center justify-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span>Comparar ticket</span>
+        </button>
+
+        <div class="flex items-center justify-center gap-3">
+          <button id="btnReplayPrint" type="button" class="text-xs text-zinc-400 hover:text-white underline">
+            🔄 Volver a imprimir
+          </button>
+          <span class="text-zinc-600">·</span>
+          <button id="btnBackToChecklistBottom" type="button" class="text-xs text-zinc-400 hover:text-white underline">
+            ← Seguir editando chango
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VISUAL CAMERA TICKET SCANNER MODAL ("Comparar ticket")                -->
+  <!-- ===================================================================== -->
+  <div id="cameraScannerModal" class="hidden fixed inset-0 z-[60] bg-black/95 backdrop-blur-md flex flex-col justify-between p-4 overflow-y-auto">
+    <div class="max-w-md w-full mx-auto flex flex-col gap-4 my-auto">
+      <!-- Top Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Escáner OCR de Ticket</span>
+          <h3 class="text-base font-bold text-white mt-1">📷 Comparar Ticket Físico vs. Lista</h3>
+          <p class="text-xs text-zinc-400">Enfocá el ticket impreso de caja para detectar diferencias de precio</p>
+        </div>
+        <button id="btnCloseCameraModal" type="button" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white">✕ Cerrar</button>
+      </div>
+
+      <!-- Camera Viewfinder Frame -->
+      <div class="relative w-full aspect-[3/4] max-h-[54vh] rounded-2xl bg-zinc-900 border-2 border-zinc-800 overflow-hidden flex items-center justify-center shadow-2xl">
+        <!-- Live Video Element (if camera is available) -->
+        <video id="cameraVideoFeed" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+
+        <!-- Simulated Viewfinder Fallback (when on PC or camera permission not granted) -->
+        <div id="cameraFallbackPreview" class=" inset-0 flex flex-col items-center justify-center p-6 text-center select-none">
+          <div class="w-48 bg-white/95 text-zinc-900 rounded shadow-2xl p-4 font-receipt text-[10px] text-left opacity-90 transform -rotate-1 border border-zinc-300">
+            <div class="text-center font-bold border-b border-dashed border-zinc-400 pb-1.5 mb-2">
+              TICKET FISCAL CAJA #04
+            </div>
+            <div id="scannerSimulatedLines" class="space-y-1"></div>
+            <div class="border-t border-dashed border-zinc-400 mt-2 pt-1.5 flex justify-between font-bold text-xs">
+              <span>TOTAL CAJA</span>
+              <span id="scannerSimulatedTotal">$0</span>
+            </div>
+          </div>
+          <p id="cameraStatusLabel" class="text-[11px] font-mono text-emerald-400 mt-3 bg-black/70 px-3 py-1 rounded-full border border-emerald-500/30">
+            📡 Cámara activa · Posicioná el ticket dentro del marco
+          </p>
+        </div>
+
+        <!-- Framing Corner Guides -->
+        <div class="pointer-events-none absolute inset-5">
+          <div class="absolute top-0 left-0 w-7 h-7 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
+          <div class="absolute top-0 right-0 w-7 h-7 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
+          <div class="absolute bottom-0 left-0 w-7 h-7 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
+          <div class="absolute bottom-0 right-0 w-7 h-7 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
+        </div>
+
+        <!-- Animated Laser Line -->
+        <div class="scan-laser pointer-events-none absolute inset-x-6 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981]"></div>
+      </div>
+
+      <!-- Visual Preview Result Card (appears when user taps Capturar / Escanear) -->
+      <div id="visualScanPreviewCard" class="hidden bg-zinc-900/90 border border-emerald-500/40 rounded-2xl p-3.5 text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-emerald-400 flex items-center gap-1.5">✓ Previsualización de Comparación de Ticket</span>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">Demo Visual</span>
+        </div>
+        <p class="text-zinc-300 leading-relaxed">
+          El módulo de lectura OCR comparará automáticamente cada renglón del ticket físico contra los <strong id="scanCompareTotalText" class="text-white">$0</strong> calculados en tu lista para alertarte si algún descuento o promoción no se aplicó en caja.
+        </p>
+      </div>
+
+      <!-- Bottom Camera Controls -->
+      <div class="flex items-center gap-2.5">
+        <button id="btnTriggerVisualScan" type="button"
+          class="flex-1 py-3.5 px-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-zinc-950 font-extrabold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
+          <span>📸 Capturar y Comparar Precios</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
-  <div id="toastMsg" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-zinc-950 font-bold text-xs px-4 py-2.5 rounded-full shadow-xl">
+  <div id="toastMsg" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-zinc-950 font-bold text-xs px-4 py-2.5 rounded-full shadow-xl">
     ¡Link copiado al portapapeles!
   </div>
 
@@ -121,8 +487,301 @@
       listId: 'default',
       list: null,
       filter: 'all', // 'all' | 'pending' | 'checked'
+      printerStage: 'processing', // 'processing' | 'printing' | 'complete'
+      printTimers: [],
+      paperAnimation: null,
+      cameraStream: null
     };
 
+    // -------------------------------------------------------------------------
+    // Exact Polygon ClipPath & Stepped Feed Keyframes from ReceiptPrinter.tsx
+    // -------------------------------------------------------------------------
+    const receiptToothCount = 40;
+    const receiptToothDepth = 4;
+    const receiptToothPoints = Array.from(
+      { length: receiptToothCount * 2 },
+      (_, index) => {
+        const x = 100 - ((index + 1) * 100) / (receiptToothCount * 2);
+        const y = index % 2 === 0 ? "100%" : `calc(100% - ${receiptToothDepth}px)`;
+        return `${x}% ${y}`;
+      }
+    ).join(", ");
+    const receiptClipPath = `polygon(0 0, 100% 0, 100% calc(100% - ${receiptToothDepth}px), ${receiptToothPoints})`;
+
+    // Apply the exact serrated clipPath to ReceiptPrinter.Paper
+    el('receiptPrinterPaper').style.clipPath = receiptClipPath;
+
+    const printingTransformKeyframes = [
+      "translateY(calc(-100% + 2px))",
+      "translateY(-91%)",
+      "translateY(-91%)",
+      "translateY(-81%)",
+      "translateY(-81%)",
+      "translateY(-70%)",
+      "translateY(-70%)",
+      "translateY(-58%)",
+      "translateY(-58%)",
+      "translateY(-45%)",
+      "translateY(-45%)",
+      "translateY(-32%)",
+      "translateY(-32%)",
+      "translateY(-20%)",
+      "translateY(-20%)",
+      "translateY(-10%)",
+      "translateY(-10%)",
+      "translateY(-3%)",
+      "translateY(-3%)",
+      "translateY(0%)",
+    ];
+
+    const printingKeyframeTimes = [
+      0, 0.075, 0.105, 0.18, 0.21, 0.285, 0.315, 0.39, 0.42, 0.495, 0.525, 0.6,
+      0.63, 0.705, 0.735, 0.81, 0.84, 0.915, 0.945, 1,
+    ];
+
+    const statusLabels = {
+      processing: "Procesando tu compra",
+      printing: "Imprimiendo tu ticket",
+      complete: "Compra finalizada",
+    };
+
+    function renderPrinterStatus(stage) {
+      state.printerStage = stage;
+      el('receiptPrinterRoot').setAttribute('data-stage', stage);
+      el('printerStatusText').textContent = statusLabels[stage] || '';
+
+      const iconContainer = el('printerStatusIcon');
+      if (stage === 'complete') {
+        // Phosphor CheckCircleIcon (weight="fill") in green
+        iconContainer.innerHTML = `
+          <svg class="w-[18px] h-[18px] text-[#22c55e] transition-transform duration-150 scale-100" viewBox="0 0 256 256" fill="currentColor">
+            <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/>
+          </svg>
+        `;
+      } else {
+        // Phosphor CircleNotchIcon (weight="bold") spinning
+        iconContainer.innerHTML = `
+          <svg class="w-[18px] h-[18px] text-zinc-400 animate-spin" viewBox="0 0 256 256" fill="currentColor">
+            <path d="M236,128a108,108,0,0,1-216,0c0-42.52,24.73-81.34,63-98.9A12,12,0,1,1,93,50.91C63.24,64.57,44,94.83,44,128a84,84,0,0,0,168,0c0-33.17-19.24-63.43-49-77.09A12,12,0,1,1,173,29.1C211.27,46.66,236,85.48,236,128Z"/>
+          </svg>
+        `;
+      }
+    }
+
+    function populateReceiptData() {
+      const list = state.list;
+      if (!list) return;
+
+      const checkedItems = list.items.filter(i => i.checked);
+      const pendingItems = list.items.filter(i => !i.checked);
+
+      let checkedTotal = 0;
+      let checkedUnits = 0;
+      checkedItems.forEach(it => {
+        const qty = it.quantity || 1;
+        const sub = Math.round((it.unitPrice || 0) * qty * 100) / 100;
+        checkedUnits += qty;
+        if (it.available !== false) checkedTotal += sub;
+      });
+
+      let pendingTotal = 0;
+      pendingItems.forEach(it => {
+        const qty = it.quantity || 1;
+        const sub = Math.round((it.unitPrice || 0) * qty * 100) / 100;
+        if (it.available !== false) pendingTotal += sub;
+      });
+
+      // Screen Header Info
+      el('printerScreenStore').textContent = list.store || 'Supermercado';
+      el('printerScreenSub').textContent = `${checkedItems.length} en chango · ${pendingItems.length} pendientes`;
+      el('printerScreenTotal').textContent = fmtARS.format(checkedTotal);
+
+      // Paper Checked Items (A PAGAR)
+      const checkedContainer = el('receiptCheckedItemsList');
+      if (checkedItems.length === 0) {
+        checkedContainer.innerHTML = `
+          <div class="py-2 text-zinc-400 italic text-[11px]">
+            No marcaste productos en el chango físico todavía.
+          </div>
+        `;
+      } else {
+        checkedContainer.innerHTML = checkedItems.map(it => {
+          const qty = it.quantity || 1;
+          const sub = Math.round((it.unitPrice || 0) * qty * 100) / 100;
+          return `
+            <div>
+              <div class="flex justify-between items-baseline gap-2 font-bold text-[#18181b]">
+                <span class="uppercase truncate">${qty}x ${it.title}</span>
+                <span class="shrink-0">${it.available !== false ? fmtARS.format(sub) : 'S/D'}</span>
+              </div>
+              <p class="text-[10px] text-zinc-400">
+                ${qty} un. × ${fmtARS.format(it.unitPrice || 0)} c/u ${it.ean ? `· EAN ${it.ean}` : ''}
+              </p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      el('receiptSubtotalAmount').textContent = fmtARS.format(checkedTotal);
+      el('receiptUnitsChecked').textContent = `${checkedUnits} ${checkedUnits === 1 ? 'unidad' : 'unidades'}`;
+      el('receiptTotalPaidAmount').textContent = fmtARS.format(checkedTotal);
+
+      // Paper Pending Items (PENDIENTES)
+      const pendingContainer = el('receiptPendingItemsList');
+      const pendingSubtotalRow = el('receiptPendingSubtotalRow');
+      el('receiptPendingCountBadge').textContent = `${pendingItems.length} prod.`;
+
+      if (pendingItems.length === 0) {
+        pendingContainer.innerHTML = `
+          <p class="text-[11px] text-emerald-700 font-semibold">
+            ✓ ¡Ningún producto pendiente! Pusiste toda la lista en el chango.
+          </p>
+        `;
+        pendingSubtotalRow.classList.add('hidden');
+      } else {
+        pendingSubtotalRow.classList.remove('hidden');
+        pendingContainer.innerHTML = pendingItems.map(it => {
+          const qty = it.quantity || 1;
+          const sub = Math.round((it.unitPrice || 0) * qty * 100) / 100;
+          return `
+            <div class="flex justify-between items-baseline gap-2">
+              <span class="truncate">• ${qty}x ${it.title}</span>
+              <span class="shrink-0">${it.available !== false ? fmtARS.format(sub) : 'Sin stock'}</span>
+            </div>
+          `;
+        }).join('');
+        el('receiptPendingTotalAmount').textContent = fmtARS.format(pendingTotal);
+      }
+
+      // Order Metadata & Barcode
+      const shortCode = (state.listId || 'ORD-2048').replace(/^lst-/, '').slice(-6).toUpperCase();
+      const orderLabel = `LITA-${shortCode}`;
+      el('receiptOrderCode').textContent = orderLabel;
+      el('receiptStoreMeta').textContent = list.store || 'Supermercado';
+
+      const now = new Date();
+      const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+      const dateFormatted = `${String(now.getDate()).padStart(2, '0')} ${months[now.getMonth()]} ${now.getFullYear()} · ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      el('receiptDateMeta').textContent = dateFormatted;
+      el('receiptBarcodeLabel').textContent = orderLabel.replace('-', ' ');
+    }
+
+    function openReceiptPrinterFlow() {
+      // Clear any previous timers/animations
+      state.printTimers.forEach(t => clearTimeout(t));
+      state.printTimers = [];
+      if (state.paperAnimation) {
+        state.paperAnimation.cancel();
+        state.paperAnimation = null;
+      }
+
+      populateReceiptData();
+
+      const wrapper = el('receiptAnimatedWrapper');
+      const slotBlur = el('receiptSlotBlur');
+      const postActions = el('postPrintActions');
+
+      postActions.classList.add('hidden');
+      postActions.classList.remove('flex');
+      slotBlur.classList.add('hidden');
+
+      // Stage 1: "processing"
+      wrapper.style.opacity = '0';
+      wrapper.style.transform = 'translateY(calc(-100% + 2px))';
+      renderPrinterStatus('processing');
+      el('receiptPrinterModal').classList.remove('hidden');
+
+      // Stage 2: "printing" (starts after 550ms with exact stepped keyframes over 1750ms)
+      const tPrint = setTimeout(() => {
+        renderPrinterStatus('printing');
+        slotBlur.classList.remove('hidden');
+        wrapper.style.opacity = '1';
+
+        const keyframes = printingTransformKeyframes.map((tf, idx) => ({
+          transform: tf,
+          offset: printingKeyframeTimes[idx]
+        }));
+
+        state.paperAnimation = wrapper.animate(keyframes, {
+          duration: 1750,
+          easing: 'linear',
+          fill: 'forwards'
+        });
+      }, 550);
+
+      // Stage 3: "complete" (after 550ms + 1750ms = 2300ms)
+      const tComplete = setTimeout(() => {
+        wrapper.style.transform = 'translateY(0%)';
+        renderPrinterStatus('complete');
+        postActions.classList.remove('hidden');
+        postActions.classList.add('flex');
+      }, 2350);
+
+      state.printTimers.push(tPrint, tComplete);
+    }
+
+    // -------------------------------------------------------------------------
+    // Visual Camera Ticket Scanner ("Comparar ticket")
+    // -------------------------------------------------------------------------
+    async function openCameraScannerModal() {
+      const list = state.list;
+      const checkedItems = (list && list.items ? list.items : []).filter(i => i.checked);
+      const sourceItems = checkedItems.length > 0 ? checkedItems : (list ? list.items : []);
+      let total = 0;
+      sourceItems.forEach(i => {
+        if (i.available !== false) total += (i.unitPrice || 0) * (i.quantity || 1);
+      });
+
+      el('scannerSimulatedLines').innerHTML = sourceItems.slice(0, 5).map(it => {
+        const sub = (it.unitPrice || 0) * (it.quantity || 1);
+        return `
+          <div class="flex justify-between truncate">
+            <span class="truncate pr-2">${it.quantity || 1}x ${it.title.slice(0, 18)}</span>
+            <span>${fmtARS.format(sub)}</span>
+          </div>
+        `;
+      }).join('');
+      el('scannerSimulatedTotal').textContent = fmtARS.format(total);
+      el('scanCompareTotalText').textContent = fmtARS.format(total);
+      el('visualScanPreviewCard').classList.add('hidden');
+      el('cameraScannerModal').classList.remove('hidden');
+
+      const video = el('cameraVideoFeed');
+      const fallback = el('cameraFallbackPreview');
+      const statusLabel = el('cameraStatusLabel');
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          });
+          state.cameraStream = stream;
+          video.srcObject = stream;
+          video.classList.remove('hidden');
+          fallback.classList.add('hidden');
+          return;
+        } catch (_) {
+          // Camera permission denied or unavailable on desktop: keep simulated viewfinder visible
+        }
+      }
+      video.classList.add('hidden');
+      fallback.classList.remove('hidden');
+      statusLabel.textContent = '📷 Vista previa de cámara · Enfocá el ticket físico';
+    }
+
+    function closeCameraScannerModal() {
+      if (state.cameraStream) {
+        state.cameraStream.getTracks().forEach(track => track.stop());
+        state.cameraStream = null;
+      }
+      el('cameraVideoFeed').srcObject = null;
+      el('cameraScannerModal').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------------------
+    // Checklist State & Decode Logic
+    // -------------------------------------------------------------------------
     function decodeBase64UrlJson(b64url) {
       try {
         const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
@@ -139,7 +798,6 @@
 
     function unpackCompactList(compact) {
       if (!compact) return null;
-      // Support both full ShoppingList object and compact encoded format { i, s, c, t, items: [[gk, ean, title, qty, price, avail, img, st], ...] }
       if (Array.isArray(compact.items) && compact.items.length > 0 && Array.isArray(compact.items[0])) {
         const items = compact.items.map(arr => ({
           groupKey: arr[0] || '',
@@ -223,7 +881,6 @@
         } catch (_) {}
       }
 
-      // Fallback: check localStorage last generated list
       if (!state.list) {
         try {
           const last = JSON.parse(localStorage.getItem('lita_last_generated_list') || 'null');
@@ -300,6 +957,7 @@
         }
       });
 
+      const pendingItemsCount = totalItems - checkedItems;
       const pct = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
 
       el('checkedTotalAmount').textContent = fmtARS.format(checkedTotal);
@@ -312,8 +970,12 @@
       el('progressBarFill').style.width = `${pct}%`;
 
       el('countAll').textContent = totalItems;
-      el('countPending').textContent = totalItems - checkedItems;
+      el('countPending').textContent = pendingItemsCount;
       el('countChecked').textContent = checkedItems;
+
+      // Update Sticky Bottom Finish Bar
+      el('bottomBarSummaryTitle').textContent = `A pagar en caja: ${fmtARS.format(checkedTotal)}`;
+      el('bottomBarSummarySub').textContent = `${checkedItems} en chango · ${pendingItemsCount} ${pendingItemsCount === 1 ? 'pendiente' : 'pendientes'}`;
 
       const banner = el('completedBanner');
       if (totalItems > 0 && checkedItems === totalItems) {
@@ -325,7 +987,6 @@
         banner.classList.remove('flex');
       }
 
-      // Filter and sort (unchecked first so pending items stay on top while shopping!)
       let visible = [...list.items];
       if (state.filter === 'pending') visible = visible.filter(i => !i.checked);
       if (state.filter === 'checked') visible = visible.filter(i => i.checked);
@@ -374,7 +1035,7 @@
             <!-- Product Info -->
             <div class="min-w-0 flex-1 cursor-pointer" data-title-area>
               <div class="flex items-center gap-1.5 flex-wrap">
-                ${it.store && list.store.includes('Dividida') ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">${it.store}</span>` : ''}
+                ${it.store && list.store.includes('Multi-Súper') ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">${it.store}</span>` : ''}
                 ${it.ean ? `<span class="text-[10px] font-mono text-zinc-400">EAN ${it.ean}</span>` : ''}
                 ${it.available === false ? `<span class="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">Sin stock web</span>` : ''}
               </div>
@@ -459,6 +1120,23 @@
       const t = el('toastMsg');
       t.classList.remove('hidden');
       setTimeout(() => t.classList.add('hidden'), 2000);
+    });
+
+    // ReceiptPrinter & Camera Scanner Listeners
+    el('btnFinishList').addEventListener('click', () => openReceiptPrinterFlow());
+    el('btnReplayPrint').addEventListener('click', () => openReceiptPrinterFlow());
+    el('btnClosePrinterModal').addEventListener('click', () => {
+      el('receiptPrinterModal').classList.add('hidden');
+    });
+    el('btnBackToChecklistBottom').addEventListener('click', () => {
+      el('receiptPrinterModal').classList.add('hidden');
+    });
+
+    el('btnOpenCameraCompare').addEventListener('click', () => openCameraScannerModal());
+    el('btnCloseCameraModal').addEventListener('click', () => closeCameraScannerModal());
+    el('btnTriggerVisualScan').addEventListener('click', () => {
+      el('visualScanPreviewCard').classList.remove('hidden');
+      el('cameraStatusLabel').textContent = '✓ Ticket capturado · Comparación visual lista';
     });
 
     initChecklist();
