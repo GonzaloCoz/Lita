@@ -269,11 +269,39 @@ type ProductMatrixRow struct {
 
 // CartCompareResponse is returned by POST /api/cart/compare and GET /api/cart/compare.
 type CartCompareResponse struct {
-	TotalItems     int                `json:"totalItems"`
-	TotalUnits     int                `json:"totalUnits"`
-	SelectedStores []string           `json:"selectedStores"`
-	StoreRanking   []StoreCartSummary `json:"storeRanking"`
+	TotalItems     int                 `json:"totalItems"`
+	TotalUnits     int                 `json:"totalUnits"`
+	SelectedStores []string            `json:"selectedStores"`
+	StoreRanking   []StoreCartSummary  `json:"storeRanking"`
 	OptimalSplit   OptimalSplitSummary `json:"optimalSplit"`
-	Matrix         []ProductMatrixRow `json:"matrix"`
+	Matrix         []ProductMatrixRow  `json:"matrix"`
 }
+
+// ShoppingListItem represents an item in a generated supermarket shopping list.
+type ShoppingListItem struct {
+	GroupKey  string  `json:"groupKey"`
+	EAN       string  `json:"ean,omitempty"`
+	Title     string  `json:"title"`
+	Store     string  `json:"store,omitempty"`
+	Quantity  int     `json:"quantity"`
+	Available bool    `json:"available"`
+	UnitPrice float64 `json:"unitPrice"`
+	Subtotal  float64 `json:"subtotal"`
+	Image     string  `json:"image,omitempty"`
+	Link      string  `json:"link,omitempty"`
+	Checked   bool    `json:"checked"`
+}
+
+// ShoppingList is a saved shopping list for a chosen supermarket visit.
+type ShoppingList struct {
+	ID         string             `json:"id"`
+	Store      string             `json:"store"`
+	BadgeColor string             `json:"badgeColor,omitempty"`
+	CreatedAt  string             `json:"createdAt"`
+	TotalPrice float64            `json:"totalPrice"`
+	TotalItems int                `json:"totalItems"`
+	TotalUnits int                `json:"totalUnits"`
+	Items      []ShoppingListItem `json:"items"`
+}
+
 

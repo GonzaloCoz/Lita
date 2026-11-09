@@ -201,10 +201,14 @@
           <p id="floatingCartBestHint" class="text-xs text-emerald-400 font-mono">Agregá productos para comparar en qué súper te conviene comprar</p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <button id="btnClearCartBar" type="button"
           class="px-3 py-2 rounded-xl border border-zinc-700 hover:bg-zinc-800 text-xs text-zinc-300 transition">
           Vaciar
+        </button>
+        <button id="btnGenerateListBar" type="button"
+          class="px-4 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs sm:text-sm transition flex items-center gap-1.5 shadow-lg shadow-sky-500/10">
+          <span>📲 Generar Lista</span>
         </button>
         <button id="btnCompareCartBar" type="button"
           class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-500/10">
@@ -224,9 +228,13 @@
             <span>🛒 Comparador de Carrito Multi-Supermercado</span>
             <span id="cartModalBadge" class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">0 prod</span>
           </h2>
-          <p class="text-xs text-zinc-400">Simulá cuánto gastarías comprando tu lista en cada supermercado o dividiendo la compra en los más baratos</p>
+          <p class="text-xs text-zinc-400">Simulá cuánto gastarías comprando tu lista en cada supermercado o generá tu lista mobile para ir al súper</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button id="btnOpenGenerateListDialog" type="button"
+            class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-xs sm:text-sm transition flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
+            <span>📲 Generar Lista de Compra</span>
+          </button>
           <button id="btnClearCartModal" type="button"
             class="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-red-950/50 hover:border-red-800/60 hover:text-red-300 text-xs text-zinc-400 transition">
             🗑️ Vaciar carrito
@@ -262,9 +270,12 @@
 
           <!-- Supermarket Ranking Section -->
           <div>
-            <h3 class="text-sm font-bold text-white mb-2.5 flex items-center gap-2">
-              <span>🏬 Cuánto gastarías por Supermercado (Ranking de tu selección)</span>
-            </h3>
+            <div class="flex items-center justify-between gap-2 mb-2.5 flex-wrap">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>🏬 Cuánto gastarías por Supermercado (Ranking de tu selección)</span>
+              </h3>
+              <span class="text-xs text-emerald-400">Podés elegir un súper directamente abajo o desde "📲 Generar Lista de Compra"</span>
+            </div>
             <div id="cartStoreRanking" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5"></div>
           </div>
 
@@ -275,6 +286,72 @@
             </h3>
             <div id="cartMatrixContainer" class="overflow-x-auto border border-zinc-800 rounded-xl bg-zinc-900/40"></div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIALOG 1: Elegir Supermercado para ir a realizar la compra -->
+  <div id="selectStoreDialog" class="hidden fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-zinc-950 border border-zinc-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-zinc-800 bg-zinc-900/80 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Paso 1 de 2</span>
+          <h3 class="text-base font-bold text-white mt-1">🏬 ¿A qué supermercado vas a ir a comprar?</h3>
+          <p class="text-xs text-zinc-400">Elegí el supermercado para armar tu lista mobile con precios y check de chango</p>
+        </div>
+        <button id="btnCloseSelectStoreDialog" type="button" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300">✕</button>
+      </div>
+      <div id="selectStoreOptionsList" class="p-4 max-h-[65vh] overflow-y-auto flex flex-col gap-2.5"></div>
+    </div>
+  </div>
+
+  <!-- DIALOG 2: Lista Generada (URL para copiar, compartir, guardar o abrir ahora) -->
+  <div id="shareListDialog" class="hidden fixed inset-0 z-[70] bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-zinc-950 border border-emerald-500/50 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+      <div class="px-5 py-4 border-b border-zinc-800 bg-emerald-950/30 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500 text-zinc-950 font-bold">¡Lista Generada! · Paso 2 de 2</span>
+          <h3 id="shareDialogTitle" class="text-base font-bold text-white mt-1">📲 Lista para Carrefour</h3>
+          <p id="shareDialogSubtitle" class="text-xs text-zinc-300">Total estimado: $0 · 0 productos</p>
+        </div>
+        <button id="btnCloseShareListDialog" type="button" class="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300">✕</button>
+      </div>
+
+      <div class="p-5 flex flex-col gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-zinc-300 mb-1.5">🔗 URL de tu lista de compra (lista mobile con check de chango):</label>
+          <div class="flex items-center gap-2">
+            <input id="generatedListUrlInput" type="text" readonly
+              class="w-full h-10 rounded-xl bg-zinc-900 border border-zinc-700 px-3 text-xs font-mono text-emerald-300 focus:outline-none select-all" />
+            <button id="btnCopyListUrl" type="button"
+              class="h-10 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs shrink-0 transition border border-zinc-700">
+              📋 Copiar
+            </button>
+          </div>
+          <p id="shareDialogToast" class="text-[11px] font-mono text-emerald-400 mt-1.5 hidden">✓ Enlace copiado al portapapeles</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <button id="btnWhatsappListUrl" type="button"
+            class="py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-semibold text-xs flex items-center justify-center gap-2 transition">
+            <span>💬 Enviar por WhatsApp / Compartir</span>
+          </button>
+          <button id="btnSaveListLocal" type="button"
+            class="py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-semibold text-xs flex items-center justify-center gap-2 transition">
+            <span>💾 Guardar Lista</span>
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-zinc-800/80 flex flex-col gap-2">
+          <a id="btnOpenListNow" href="#" target="_blank" rel="noopener"
+            class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-extrabold text-sm text-center transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+            <span>🛒 Abrir Lista Ahora (Vista Mobile con Check de Chango) ↗</span>
+          </a>
+          <button id="btnBackToSelectStore" type="button"
+            class="text-xs text-zinc-400 hover:text-zinc-200 py-1 text-center transition">
+            ← Elegir otro supermercado
+          </button>
         </div>
       </div>
     </div>
@@ -1720,6 +1797,8 @@
         </div>
       `;
 
+      state.lastComparison = cmp;
+
       // 2. Render Store Ranking Cards
       const rankContainer = el('cartStoreRanking');
       if (!cmp.storeRanking || cmp.storeRanking.length === 0) {
@@ -1777,6 +1856,15 @@
               <div class="border-t border-zinc-800/80 pt-2 max-h-36 overflow-y-auto">
                 ${linesHtml}
               </div>
+
+              <button type="button" onclick="generateListForStoreByName('${r.store}')"
+                class="w-full mt-1 py-2 px-3 rounded-xl ${
+                  isTop
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold'
+                    : 'bg-zinc-800 hover:bg-emerald-500 hover:text-zinc-950 text-zinc-200 font-semibold'
+                } text-xs transition flex items-center justify-center gap-1.5">
+                <span>📲 Elegir ${r.store} y Generar Lista →</span>
+              </button>
             </div>
           `;
         }).join('');
@@ -1845,6 +1933,284 @@
       `;
     }
 
+    // ---------------------------------------------------------
+    // DIALOG 1 (Elegir Súper) & DIALOG 2 (Generar URL de Lista Mobile)
+    // ---------------------------------------------------------
+    function encodeBase64UrlJson(obj) {
+      const jsonStr = JSON.stringify(obj);
+      const bytes = new TextEncoder().encode(jsonStr);
+      let bin = '';
+      bytes.forEach(b => { bin += String.fromCharCode(b); });
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    async function openSelectStoreDialog() {
+      if (state.cart.length === 0) {
+        el('cartModal').classList.remove('hidden');
+        renderCartModal();
+        return;
+      }
+
+      const cmp = state.lastComparison || await computeCartComparison();
+      state.lastComparison = cmp;
+      const listContainer = el('selectStoreOptionsList');
+      listContainer.innerHTML = '';
+
+      const ranking = cmp.storeRanking || [];
+      if (ranking.length === 0) {
+        listContainer.innerHTML = `<div class="text-xs text-zinc-400 py-6 text-center">No hay ofertas en los supermercados seleccionados. Activá más cadenas en el comparador.</div>`;
+      } else {
+        ranking.forEach((r, idx) => {
+          const isBest = idx === 0;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = `w-full text-left p-3.5 rounded-xl border transition flex items-center justify-between gap-3 ${
+            isBest
+              ? 'bg-emerald-950/30 border-emerald-500/60 hover:bg-emerald-950/50'
+              : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900'
+          }`;
+          btn.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${r.badgeColor || '#10b981'}"></span>
+                <span class="font-bold text-sm text-white">${r.store}</span>
+                ${isBest ? `<span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-emerald-500 text-zinc-950 font-bold">Más conveniente</span>` : ''}
+              </div>
+              <p class="text-xs text-zinc-400 mt-1">
+                Disponibles: <strong class="text-zinc-200">${r.availableCount} de ${r.totalItems}</strong> productos (${r.coveragePct}%)
+                ${r.missingCount > 0 ? ` · <span class="text-amber-300">${r.missingCount} sin stock</span>` : ''}
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-lg font-extrabold font-mono ${isBest ? 'text-emerald-400' : 'text-white'}">${fmtARS.format(r.totalPrice)}</div>
+              <span class="text-[11px] font-semibold text-emerald-400">Elegir súper →</span>
+            </div>
+          `;
+          btn.onclick = () => generateListForStoreRanking(r);
+          listContainer.appendChild(btn);
+        });
+
+        // Also offer Optimal Split option if there are multiple stores
+        if (cmp.optimalSplit && cmp.optimalSplit.allocations && cmp.optimalSplit.allocations.length > 1) {
+          const opt = cmp.optimalSplit;
+          const splitBtn = document.createElement('button');
+          splitBtn.type = 'button';
+          splitBtn.className = 'w-full text-left p-3.5 rounded-xl border border-sky-500/50 bg-sky-950/25 hover:bg-sky-950/40 transition flex items-center justify-between gap-3 mt-1';
+          splitBtn.innerHTML = `
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-xs">⚡</span>
+                <span class="font-bold text-sm text-sky-300">Compra Inteligente (Multi-Súper)</span>
+              </div>
+              <p class="text-xs text-zinc-400 mt-1">
+                Cada producto asignado al súper donde está más barato (${opt.allocations.map(a => a.store).join(' + ')})
+              </p>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-lg font-extrabold font-mono text-sky-400">${fmtARS.format(opt.totalPrice)}</div>
+              <span class="text-[11px] font-semibold text-sky-300">Armar lista →</span>
+            </div>
+          `;
+          splitBtn.onclick = () => generateListForOptimalSplit(cmp);
+          listContainer.appendChild(splitBtn);
+        }
+      }
+
+      el('selectStoreDialog').classList.remove('hidden');
+    }
+
+    async function generateListForStoreByName(storeName) {
+      const cmp = state.lastComparison || await computeCartComparison();
+      state.lastComparison = cmp;
+      const found = (cmp.storeRanking || []).find(r => r.store === storeName);
+      if (found) {
+        await generateListForStoreRanking(found);
+      }
+    }
+
+    async function generateListForStoreRanking(storeRank) {
+      const listId = 'lst-' + Date.now().toString(36);
+      const items = (storeRank.lines || []).map(ln => ({
+        groupKey: ln.groupKey,
+        ean: ln.ean || '',
+        title: ln.title,
+        image: ln.image || '',
+        quantity: ln.quantity || 1,
+        available: !!ln.available,
+        unitPrice: ln.unitPrice || 0,
+        listPrice: ln.listPrice || ln.unitPrice || 0,
+        subtotal: ln.subtotal || 0,
+        link: ln.link || '',
+        store: storeRank.store,
+        checked: false
+      }));
+
+      await finalizeAndShowShareDialog({
+        id: listId,
+        store: storeRank.store,
+        badgeColor: storeRank.badgeColor || '#10b981',
+        totalPrice: storeRank.totalPrice || 0,
+        totalItems: items.length,
+        totalUnits: items.reduce((a, b) => a + (b.quantity || 1), 0),
+        items
+      });
+    }
+
+    async function generateListForOptimalSplit(cmp) {
+      const listId = 'lst-' + Date.now().toString(36);
+      const items = (cmp.matrix || []).map(row => {
+        const bestSt = row.bestStore;
+        const ln = (bestSt && row.byStore && row.byStore[bestSt]) || null;
+        return {
+          groupKey: row.groupKey,
+          ean: row.ean || '',
+          title: row.title,
+          image: row.image || '',
+          quantity: row.quantity || 1,
+          available: !!(ln && ln.available),
+          unitPrice: ln ? ln.unitPrice : 0,
+          listPrice: ln ? ln.listPrice : 0,
+          subtotal: ln ? ln.subtotal : 0,
+          link: ln ? ln.link : '',
+          store: bestSt || 'Varios',
+          checked: false
+        };
+      });
+
+      await finalizeAndShowShareDialog({
+        id: listId,
+        store: 'Compra Inteligente Multi-Súper',
+        badgeColor: '#0ea5e9',
+        totalPrice: (cmp.optimalSplit && cmp.optimalSplit.totalPrice) || 0,
+        totalItems: items.length,
+        totalUnits: items.reduce((a, b) => a + (b.quantity || 1), 0),
+        items
+      });
+    }
+
+    async function finalizeAndShowShareDialog(listObj) {
+      // 1. Save to Go backend if online
+      if (state.backendOnline) {
+        try {
+          const res = await fetch(apiUrl('/api/lists'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(listObj)
+          });
+          if (res.ok) {
+            const saved = await res.json();
+            if (saved && saved.id) listObj.id = saved.id;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Build compact Base64URL payload so the link works anywhere (WhatsApp, mobile, GitHub Pages, local)
+      const compactPayload = {
+        i: listObj.id,
+        s: listObj.store,
+        c: listObj.badgeColor,
+        t: listObj.totalPrice,
+        items: listObj.items.map(it => [
+          it.groupKey,
+          it.ean || '',
+          it.title,
+          it.quantity || 1,
+          it.unitPrice || 0,
+          it.available ? 1 : 0,
+          it.image || '',
+          it.store || listObj.store
+        ])
+      };
+      const encoded = encodeBase64UrlJson(compactPayload);
+      const basePath = location.origin + location.pathname.replace(/\/index\.html$/, '').replace(/\/+$/, '');
+      const fullUrl = `${basePath}/lista.html?id=${encodeURIComponent(listObj.id)}&d=${encoded}`;
+
+      state.currentGeneratedList = { ...listObj, url: fullUrl };
+
+      // Save automatically in local history as well
+      saveCurrentListToLocalHistory(false);
+
+      // Close Dialog 1 and populate Dialog 2
+      el('selectStoreDialog').classList.add('hidden');
+      el('shareDialogTitle').textContent = `📲 Lista para ${listObj.store}`;
+      el('shareDialogSubtitle').textContent = `Total estimado: ${fmtARS.format(listObj.totalPrice)} · ${listObj.totalItems} ${listObj.totalItems === 1 ? 'producto' : 'productos'} (${listObj.totalUnits} unid.)`;
+      el('generatedListUrlInput').value = fullUrl;
+      el('btnOpenListNow').href = fullUrl;
+      el('shareDialogToast').classList.add('hidden');
+      el('shareListDialog').classList.remove('hidden');
+    }
+
+    function saveCurrentListToLocalHistory(showFeedback) {
+      if (!state.currentGeneratedList) return;
+      let savedLists = [];
+      try {
+        savedLists = JSON.parse(localStorage.getItem('lita_saved_lists_v1') || '[]');
+        if (!Array.isArray(savedLists)) savedLists = [];
+      } catch (_) { savedLists = []; }
+
+      const existingIdx = savedLists.findIndex(x => x.id === state.currentGeneratedList.id);
+      const entry = {
+        id: state.currentGeneratedList.id,
+        store: state.currentGeneratedList.store,
+        totalPrice: state.currentGeneratedList.totalPrice,
+        totalItems: state.currentGeneratedList.totalItems,
+        url: state.currentGeneratedList.url,
+        createdAt: new Date().toISOString()
+      };
+      if (existingIdx >= 0) savedLists[existingIdx] = entry;
+      else savedLists.unshift(entry);
+
+      localStorage.setItem('lita_saved_lists_v1', JSON.stringify(savedLists.slice(0, 25)));
+      if (showFeedback) {
+        const toast = el('shareDialogToast');
+        toast.textContent = '💾 Lista guardada en este dispositivo y lista para abrir cuando estés en el súper';
+        toast.classList.remove('hidden');
+      }
+    }
+
+    el('btnGenerateListBar').addEventListener('click', () => openSelectStoreDialog());
+    el('btnOpenGenerateListDialog').addEventListener('click', () => openSelectStoreDialog());
+    el('btnCloseSelectStoreDialog').addEventListener('click', () => {
+      el('selectStoreDialog').classList.add('hidden');
+    });
+    el('btnCloseShareListDialog').addEventListener('click', () => {
+      el('shareListDialog').classList.add('hidden');
+    });
+    el('btnBackToSelectStore').addEventListener('click', () => {
+      el('shareListDialog').classList.add('hidden');
+      openSelectStoreDialog();
+    });
+
+    el('btnCopyListUrl').addEventListener('click', async () => {
+      const url = el('generatedListUrlInput').value;
+      if (!url) return;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (_) {
+        el('generatedListUrlInput').select();
+        document.execCommand('copy');
+      }
+      const toast = el('shareDialogToast');
+      toast.textContent = '✓ URL copiada al portapapeles. Ya podés pegarla en WhatsApp o notas.';
+      toast.classList.remove('hidden');
+    });
+
+    el('btnWhatsappListUrl').addEventListener('click', async () => {
+      const cur = state.currentGeneratedList;
+      if (!cur) return;
+      const text = `🛒 Lista de compra en *${cur.store}* (${cur.totalItems} prod · Total est: ${fmtARS.format(cur.totalPrice)}):\n${cur.url}`;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: `Lista Lita - ${cur.store}`, text, url: cur.url });
+          return;
+        } catch (_) {}
+      }
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(waUrl, '_blank', 'noopener');
+    });
+
+    el('btnSaveListLocal').addEventListener('click', () => saveCurrentListToLocalHistory(true));
+
     el('btnOpenCart').addEventListener('click', () => {
       el('cartModal').classList.remove('hidden');
       renderCartModal();
@@ -1860,6 +2226,7 @@
     el('btnClearCartModal').addEventListener('click', () => clearCartAll());
 
     window.updateCartQtyByKey = updateCartQtyByKey;
+    window.generateListForStoreByName = generateListForStoreByName;
     window.searchByEan = function(ean) {
       el('searchInput').value = ean;
       el('searchInput').dispatchEvent(new Event('input'));

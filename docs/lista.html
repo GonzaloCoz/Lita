@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lita — Mi Lista de Compra (Modo Chango)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .check-bounce {
+      transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .check-bounce:active {
+      transform: scale(0.92);
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col selection:bg-emerald-500/30">
+
+  <!-- Sticky Mobile App Header -->
+  <header class="sticky top-0 z-30 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 shadow-xl">
+    <div class="max-w-lg mx-auto px-4 pt-3 pb-3.5 flex flex-col gap-2.5">
+      <!-- Top Row: Back + Store Badge + Share -->
+      <div class="flex items-center justify-between gap-2">
+        <a href="./index.html" class="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800/80 px-2.5 py-1.5 rounded-lg transition">
+          <span>← Buscador</span>
+        </a>
+        <div class="flex items-center gap-2">
+          <span id="storeDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h1 id="storeTitle" class="text-sm sm:text-base font-bold text-white truncate">Cargando lista...</h1>
+        </div>
+        <button id="btnShareTop" type="button"
+          class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1.5 rounded-lg active:scale-95 transition">
+          <span>📤 Compartir</span>
+        </button>
+      </div>
+
+      <!-- Spend Summary Cards (In Physical Cart vs Total Planned) -->
+      <div class="grid grid-cols-2 gap-2.5 pt-0.5">
+        <div class="bg-emerald-950/30 border border-emerald-500/40 rounded-xl px-3 py-2 flex flex-col justify-between">
+          <span class="text-[10px] font-mono uppercase text-emerald-400 font-semibold">🛒 En el chango físico</span>
+          <div class="flex items-baseline justify-between mt-0.5">
+            <span id="checkedTotalAmount" class="text-lg font-bold font-mono text-emerald-400">$0</span>
+            <span id="checkedUnitsCount" class="text-[11px] font-mono text-emerald-300/80">0 un.</span>
+          </div>
+        </div>
+
+        <div class="bg-zinc-950/90 border border-zinc-800 rounded-xl px-3 py-2 flex flex-col justify-between">
+          <span class="text-[10px] font-mono uppercase text-zinc-400 font-semibold">📋 Total estimado lista</span>
+          <div class="flex items-baseline justify-between mt-0.5">
+            <span id="plannedTotalAmount" class="text-lg font-bold font-mono text-white">$0</span>
+            <span id="plannedUnitsCount" class="text-[11px] font-mono text-zinc-400">0 un.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div>
+        <div class="flex items-center justify-between text-xs mb-1">
+          <span id="progressLabel" class="font-medium text-zinc-300">Progreso en góndola: 0 de 0 productos</span>
+          <span id="progressPct" class="font-mono font-bold text-emerald-400">0%</span>
+        </div>
+        <div class="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+          <div id="progressBarFill" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex items-center justify-between gap-2 pt-1">
+        <div class="inline-flex rounded-xl bg-zinc-950 border border-zinc-800 p-0.5 text-xs flex-1">
+          <button type="button" data-filter="all" class="tab-btn flex-1 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition">
+            Todos (<span id="countAll">0</span>)
+          </button>
+          <button type="button" data-filter="pending" class="tab-btn flex-1 py-1.5 rounded-lg text-zinc-400 hover:text-white transition">
+            Faltan (<span id="countPending">0</span>)
+          </button>
+          <button type="button" data-filter="checked" class="tab-btn flex-1 py-1.5 rounded-lg text-zinc-400 hover:text-white transition">
+            En chango (<span id="countChecked">0</span>)
+          </button>
+        </div>
+
+        <button id="btnResetChecks" type="button" title="Destildar todos"
+          class="px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 hover:text-zinc-200">
+          Reiniciar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Mobile Checklist -->
+  <main class="max-w-lg w-full mx-auto px-3.5 py-4 flex-1 flex flex-col gap-3 pb-24">
+    <!-- Completion Banner -->
+    <div id="completedBanner" class="hidden bg-emerald-500/15 border border-emerald-500/50 rounded-2xl p-4 text-center flex-col items-center gap-1 shadow-lg">
+      <span class="text-2xl">🎉</span>
+      <h2 class="text-sm font-bold text-emerald-300">¡Completaste todos los productos en el chango!</h2>
+      <p id="completedBannerSub" class="text-xs text-zinc-300">Total listo para pasar por caja.</p>
+    </div>
+
+    <!-- Items Container -->
+    <div id="itemsListContainer" class="flex flex-col gap-2.5"></div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toastMsg" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-zinc-950 font-bold text-xs px-4 py-2.5 rounded-full shadow-xl">
+    ¡Link copiado al portapapeles!
+  </div>
+
+  <script>
+    const fmtARS = new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      maximumFractionDigits: 0
+    });
+
+    const el = id => document.getElementById(id);
+
+    const state = {
+      listId: 'default',
+      list: null,
+      filter: 'all', // 'all' | 'pending' | 'checked'
+    };
+
+    function decodeBase64UrlJson(b64url) {
+      try {
+        const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+        const binStr = atob(b64 + pad);
+        const bytes = Uint8Array.from(binStr, c => c.charCodeAt(0));
+        const jsonStr = new TextDecoder().decode(bytes);
+        return JSON.parse(jsonStr);
+      } catch (err) {
+        console.error('Error decoding list payload:', err);
+        return null;
+      }
+    }
+
+    function unpackCompactList(compact) {
+      if (!compact) return null;
+      // Support both full ShoppingList object and compact encoded format { i, s, c, t, items: [[gk, ean, title, qty, price, avail, img, st], ...] }
+      if (Array.isArray(compact.items) && compact.items.length > 0 && Array.isArray(compact.items[0])) {
+        const items = compact.items.map(arr => ({
+          groupKey: arr[0] || '',
+          ean: arr[1] || '',
+          title: arr[2] || 'Producto',
+          quantity: Number(arr[3]) || 1,
+          unitPrice: Number(arr[4]) || 0,
+          subtotal: Math.round((Number(arr[3]) || 1) * (Number(arr[4]) || 0) * 100) / 100,
+          available: arr[5] !== 0,
+          image: arr[6] || '',
+          store: arr[7] || compact.s || '',
+          checked: false
+        }));
+        return {
+          id: compact.i || 'lst-local',
+          store: compact.s || 'Supermercado',
+          badgeColor: compact.c || '#10b981',
+          createdAt: compact.t || new Date().toISOString(),
+          items
+        };
+      }
+      return compact;
+    }
+
+    function storageKey() {
+      return `lita_checklist_state_${state.listId}`;
+    }
+
+    function loadSavedCheckState(listObj) {
+      if (!listObj || !Array.isArray(listObj.items)) return;
+      try {
+        const raw = localStorage.getItem(storageKey());
+        if (!raw) return;
+        const savedMap = JSON.parse(raw);
+        listObj.items.forEach(it => {
+          const entry = savedMap[it.groupKey];
+          if (entry) {
+            if (typeof entry.checked === 'boolean') it.checked = entry.checked;
+            if (typeof entry.quantity === 'number' && entry.quantity > 0) {
+              it.quantity = entry.quantity;
+              it.subtotal = Math.round(it.unitPrice * it.quantity * 100) / 100;
+            }
+          }
+        });
+      } catch (_) {}
+    }
+
+    function saveCheckState() {
+      if (!state.list || !Array.isArray(state.list.items)) return;
+      const map = {};
+      state.list.items.forEach(it => {
+        map[it.groupKey] = {
+          checked: !!it.checked,
+          quantity: it.quantity
+        };
+      });
+      localStorage.setItem(storageKey(), JSON.stringify(map));
+    }
+
+    async function initChecklist() {
+      const params = new URLSearchParams(location.search);
+      const idParam = params.get('id') || '';
+      const dParam = params.get('d') || (location.hash ? location.hash.slice(1) : '');
+
+      if (dParam) {
+        const decoded = decodeBase64UrlJson(dParam);
+        const unpacked = unpackCompactList(decoded);
+        if (unpacked) {
+          state.listId = unpacked.id || idParam || dParam.slice(0, 16);
+          state.list = unpacked;
+        }
+      }
+
+      if (!state.list && idParam) {
+        state.listId = idParam;
+        try {
+          const res = await fetch(`/api/lists/${encodeURIComponent(idParam)}`);
+          if (res.ok) {
+            state.list = await res.json();
+          }
+        } catch (_) {}
+      }
+
+      // Fallback: check localStorage last generated list
+      if (!state.list) {
+        try {
+          const last = JSON.parse(localStorage.getItem('lita_last_generated_list') || 'null');
+          if (last) {
+            state.listId = last.id || 'local';
+            state.list = last;
+          }
+        } catch (_) {}
+      }
+
+      if (!state.list || !Array.isArray(state.list.items) || state.list.items.length === 0) {
+        el('storeTitle').textContent = 'Lista vacía o no encontrada';
+        el('itemsListContainer').innerHTML = `
+          <div class="bg-zinc-900/70 border border-zinc-800 rounded-2xl p-6 text-center my-6">
+            <p class="text-sm font-semibold text-zinc-200 mb-1">No encontramos productos en esta lista</p>
+            <p class="text-xs text-zinc-500 mb-4">Volvé al buscador, agregá productos a tu carrito y presioná "Generar Lista de Compra".</p>
+            <a href="./index.html" class="inline-block px-4 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs">Ir al Buscador Lita</a>
+          </div>
+        `;
+        return;
+      }
+
+      loadSavedCheckState(state.list);
+      renderAll();
+    }
+
+    function toggleItemChecked(groupKey) {
+      const item = state.list.items.find(i => i.groupKey === groupKey);
+      if (!item) return;
+      item.checked = !item.checked;
+      saveCheckState();
+      renderAll();
+    }
+
+    function changeItemQty(groupKey, delta) {
+      const item = state.list.items.find(i => i.groupKey === groupKey);
+      if (!item) return;
+      const next = (item.quantity || 1) + delta;
+      if (next < 1) return;
+      item.quantity = next;
+      item.subtotal = Math.round(item.unitPrice * item.quantity * 100) / 100;
+      saveCheckState();
+      renderAll();
+    }
+
+    function renderAll() {
+      const list = state.list;
+      if (!list) return;
+
+      el('storeTitle').textContent = `Compra en ${list.store}`;
+      el('storeDot').style.background = list.badgeColor || '#10b981';
+
+      const totalItems = list.items.length;
+      let checkedItems = 0;
+      let checkedUnits = 0;
+      let plannedUnits = 0;
+      let checkedTotal = 0;
+      let plannedTotal = 0;
+
+      list.items.forEach(it => {
+        const qty = it.quantity || 1;
+        const sub = Math.round((it.unitPrice || 0) * qty * 100) / 100;
+        it.subtotal = sub;
+        plannedUnits += qty;
+        if (it.available !== false) {
+          plannedTotal += sub;
+        }
+        if (it.checked) {
+          checkedItems++;
+          checkedUnits += qty;
+          if (it.available !== false) {
+            checkedTotal += sub;
+          }
+        }
+      });
+
+      const pct = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
+
+      el('checkedTotalAmount').textContent = fmtARS.format(checkedTotal);
+      el('checkedUnitsCount').textContent = `${checkedUnits} un.`;
+      el('plannedTotalAmount').textContent = fmtARS.format(plannedTotal);
+      el('plannedUnitsCount').textContent = `${plannedUnits} un.`;
+
+      el('progressLabel').textContent = `En el chango: ${checkedItems} de ${totalItems} productos`;
+      el('progressPct').textContent = `${pct}%`;
+      el('progressBarFill').style.width = `${pct}%`;
+
+      el('countAll').textContent = totalItems;
+      el('countPending').textContent = totalItems - checkedItems;
+      el('countChecked').textContent = checkedItems;
+
+      const banner = el('completedBanner');
+      if (totalItems > 0 && checkedItems === totalItems) {
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+        el('completedBannerSub').textContent = `Total en tu chango para pagar en caja: ${fmtARS.format(checkedTotal)} (${checkedUnits} unidades)`;
+      } else {
+        banner.classList.add('hidden');
+        banner.classList.remove('flex');
+      }
+
+      // Filter and sort (unchecked first so pending items stay on top while shopping!)
+      let visible = [...list.items];
+      if (state.filter === 'pending') visible = visible.filter(i => !i.checked);
+      if (state.filter === 'checked') visible = visible.filter(i => i.checked);
+
+      visible.sort((a, b) => Number(a.checked) - Number(b.checked));
+
+      const container = el('itemsListContainer');
+      container.innerHTML = '';
+
+      if (visible.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 text-xs text-zinc-500">
+            ${state.filter === 'pending' ? '¡No quedan productos pendientes por poner en el chango!' : 'Todavía no marcaste productos en el chango.'}
+          </div>
+        `;
+        return;
+      }
+
+      visible.forEach(it => {
+        const card = document.createElement('article');
+        const isChecked = !!it.checked;
+        card.className = `rounded-2xl p-3.5 border transition flex flex-col gap-2.5 ${
+          isChecked
+            ? 'bg-emerald-950/20 border-emerald-500/40 opacity-80'
+            : 'bg-zinc-900/80 border-zinc-800/90 shadow-md'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <!-- Physical Cart Check Button -->
+            <button type="button" data-check-btn class="check-bounce w-11 h-11 rounded-2xl shrink-0 flex items-center justify-center border-2 transition ${
+              isChecked
+                ? 'bg-emerald-500 border-emerald-400 text-zinc-950 shadow-lg shadow-emerald-500/20'
+                : 'bg-zinc-950 border-zinc-700 text-transparent hover:border-emerald-500/60'
+            }" aria-label="Marcar en el chango">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </button>
+
+            <!-- Product Thumbnail -->
+            <div class="w-14 h-14 rounded-xl bg-white p-1 shrink-0 flex items-center justify-center overflow-hidden">
+              ${it.image ? `<img src="${it.image}" alt="" class="max-h-full max-w-full object-contain" />` : `<span class="text-lg">🛒</span>`}
+            </div>
+
+            <!-- Product Info -->
+            <div class="min-w-0 flex-1 cursor-pointer" data-title-area>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                ${it.store && list.store.includes('Dividida') ? `<span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-500/30">${it.store}</span>` : ''}
+                ${it.ean ? `<span class="text-[10px] font-mono text-zinc-400">EAN ${it.ean}</span>` : ''}
+                ${it.available === false ? `<span class="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">Sin stock web</span>` : ''}
+              </div>
+              <h3 class="text-sm font-semibold leading-snug mt-0.5 ${isChecked ? 'line-through text-zinc-400' : 'text-white'}">
+                ${it.title}
+              </h3>
+              <p class="text-[11px] font-mono text-zinc-400 mt-0.5">
+                ${it.available !== false ? `${fmtARS.format(it.unitPrice)} c/u` : 'Precio no informado en web'}
+              </p>
+            </div>
+          </div>
+
+          <!-- Bottom Bar: Status Pill + Quantity + Subtotal -->
+          <div class="flex items-center justify-between pt-2 border-t border-zinc-800/70">
+            <button type="button" data-status-pill class="text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 ${
+              isChecked
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200'
+            }">
+              <span>${isChecked ? '✓ Ya está en el chango' : '○ Poner en el chango'}</span>
+            </button>
+
+            <div class="flex items-center gap-3">
+              <div class="inline-flex items-center gap-1.5 bg-zinc-950 border border-zinc-800 rounded-xl px-2 py-1">
+                <button type="button" data-qty-dec class="w-6 h-6 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center">−</button>
+                <span class="text-xs font-mono font-bold text-white px-1">${it.quantity}</span>
+                <button type="button" data-qty-inc class="w-6 h-6 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-sm flex items-center justify-center">+</button>
+              </div>
+
+              <div class="text-right min-w-[76px]">
+                <span class="text-base font-bold font-mono ${isChecked ? 'text-emerald-400' : 'text-white'}">
+                  ${it.available !== false ? fmtARS.format(it.subtotal) : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('[data-check-btn]').onclick = () => toggleItemChecked(it.groupKey);
+        card.querySelector('[data-title-area]').onclick = () => toggleItemChecked(it.groupKey);
+        card.querySelector('[data-status-pill]').onclick = () => toggleItemChecked(it.groupKey);
+        card.querySelector('[data-qty-dec]').onclick = () => changeItemQty(it.groupKey, -1);
+        card.querySelector('[data-qty-inc]').onclick = () => changeItemQty(it.groupKey, 1);
+
+        container.appendChild(card);
+      });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.filter = btn.dataset.filter;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.className = b.dataset.filter === state.filter
+            ? 'tab-btn flex-1 py-1.5 rounded-lg bg-zinc-800 text-white font-semibold transition'
+            : 'tab-btn flex-1 py-1.5 rounded-lg text-zinc-400 hover:text-white transition';
+        });
+        renderAll();
+      });
+    });
+
+    el('btnResetChecks').addEventListener('click', () => {
+      if (!state.list) return;
+      state.list.items.forEach(i => { i.checked = false; });
+      saveCheckState();
+      renderAll();
+    });
+
+    el('btnShareTop').addEventListener('click', async () => {
+      const shareUrl = location.href;
+      const storeName = state.list ? state.list.store : 'Supermercado';
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Lista de Compra en ${storeName} — Lita`,
+            text: `Mi lista de compra para ${storeName} en Lita:`,
+            url: shareUrl
+          });
+          return;
+        } catch (_) {}
+      }
+      navigator.clipboard.writeText(shareUrl);
+      const t = el('toastMsg');
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2000);
+    });
+
+    initChecklist();
+  </script>
+</body>
+</html>

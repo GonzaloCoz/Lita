@@ -2,28 +2,83 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/GonzaloCoz/Lita/internal/domain"
 	"github.com/GonzaloCoz/Lita/internal/normalize"
 )
 
-// CartManager holds an in-memory shopping cart and runs multi-supermarket price comparisons.
+// CartManager holds an in-memory shopping cart, saved shopping lists, and runs multi-supermarket price comparisons.
 type CartManager struct {
 	mu    sync.RWMutex
 	items map[string]domain.CartItem
 	order []string
+	lists map[string]domain.ShoppingList
 	agg   *Aggregator
 }
 
 func NewCartManager(agg *Aggregator) *CartManager {
 	return &CartManager{
 		items: make(map[string]domain.CartItem),
+		lists: make(map[string]domain.ShoppingList),
 		agg:   agg,
 	}
+}
+
+func (cm *CartManager) SaveList(list domain.ShoppingList) domain.ShoppingList {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	if strings.TrimSpace(list.ID) == "" {
+		list.ID = fmt.Sprintf("lst-%d", time.Now().UnixNano()/1e6)
+	}
+	if list.CreatedAt == "" {
+		list.CreatedAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	var total float64
+	totalUnits := 0
+	for i := range list.Items {
+		if list.Items[i].Quantity <= 0 {
+			list.Items[i].Quantity = 1
+		}
+		totalUnits += list.Items[i].Quantity
+		list.Items[i].Subtotal = round2(list.Items[i].UnitPrice * float64(list.Items[i].Quantity))
+		if list.Items[i].Available {
+			total = round2(total + list.Items[i].Subtotal)
+		}
+	}
+	list.TotalItems = len(list.Items)
+	list.TotalUnits = totalUnits
+	list.TotalPrice = total
+	cm.lists[list.ID] = list
+	return list
+}
+
+func (cm *CartManager) GetList(id string) (domain.ShoppingList, bool) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+	l, ok := cm.lists[strings.TrimSpace(id)]
+	return l, ok
+}
+
+func (cm *CartManager) ToggleListItemCheck(listID, groupKey string, checked bool) (domain.ShoppingList, bool) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+	l, ok := cm.lists[strings.TrimSpace(listID)]
+	if !ok {
+		return domain.ShoppingList{}, false
+	}
+	for i := range l.Items {
+		if l.Items[i].GroupKey == groupKey {
+			l.Items[i].Checked = checked
+		}
+	}
+	cm.lists[l.ID] = l
+	return l, true
 }
 
 func (cm *CartManager) GetItems() []domain.CartItem {

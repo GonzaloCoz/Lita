@@ -247,7 +247,46 @@ func main() {
 		writeJSON(w, http.StatusOK, res)
 	})
 
-	// 8. Serve minimalist web frontend from ./web
+	// 8. Shareable Supermarket Shopping Lists (POST /api/lists, GET /api/lists/{id}, POST /api/lists/{id}/check)
+	mux.HandleFunc("POST /api/lists", func(w http.ResponseWriter, r *http.Request) {
+		var list domain.ShoppingList
+		if err := json.NewDecoder(r.Body).Decode(&list); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "JSON inválido: " + err.Error()})
+			return
+		}
+		saved := cart.SaveList(list)
+		writeJSON(w, http.StatusOK, saved)
+	})
+
+	mux.HandleFunc("GET /api/lists/{id}", func(w http.ResponseWriter, r *http.Request) {
+		id := strings.TrimSpace(r.PathValue("id"))
+		list, ok := cart.GetList(id)
+		if !ok {
+			writeJSON(w, http.StatusNotFound, map[string]any{"error": "Lista no encontrada"})
+			return
+		}
+		writeJSON(w, http.StatusOK, list)
+	})
+
+	mux.HandleFunc("POST /api/lists/{id}/check", func(w http.ResponseWriter, r *http.Request) {
+		id := strings.TrimSpace(r.PathValue("id"))
+		var body struct {
+			GroupKey string `json:"groupKey"`
+			Checked  bool   `json:"checked"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "JSON inválido"})
+			return
+		}
+		list, ok := cart.ToggleListItemCheck(id, body.GroupKey, body.Checked)
+		if !ok {
+			writeJSON(w, http.StatusNotFound, map[string]any{"error": "Lista no encontrada"})
+			return
+		}
+		writeJSON(w, http.StatusOK, list)
+	})
+
+	// 9. Serve minimalist web frontend from ./web
 	webDir := filepath.Join(".", "web")
 	fs := http.FileServer(http.Dir(webDir))
 	mux.Handle("/", fs)
