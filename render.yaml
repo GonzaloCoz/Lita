@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: lita-backend
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8080
