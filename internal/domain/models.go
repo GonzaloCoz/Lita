@@ -65,7 +65,7 @@ type StoreInfo struct {
 type Benefit struct {
 	Type        string    `json:"type"`                  // "multibuy" | "percentage" | "second_unit" | "fixed"
 	Label       string    `json:"label,omitempty"`       // e.g. "3x2", "2da al 70%"
-	MinQty      int       `json:"minQty,omitempty"`      // e.g. 3
+	MinQty      FlexFloat `json:"minQty,omitempty"`      // e.g. 3
 	UnitPrice   FlexFloat `json:"unitPrice,omitempty"`   // effective unit price under promo
 	Percentage  FlexFloat `json:"percentage,omitempty"`  // e.g. 25
 	SecondUnit  FlexFloat `json:"secondUnit,omitempty"`  // e.g. 70
@@ -103,7 +103,7 @@ type Product struct {
 	ListPrice            float64      `json:"listPrice"`
 	PriceWithoutMultiBuy FlexFloat    `json:"priceWithoutMultiBuy,omitempty"`
 	MultiBuyPrice        FlexFloat    `json:"multiBuyPrice,omitempty"`
-	MultiBuyMinQty       int          `json:"multiBuyMinQty,omitempty"`
+	MultiBuyMinQty       FlexFloat    `json:"multiBuyMinQty,omitempty"`
 	Link                 string       `json:"link"`
 	AddToCartLink        string       `json:"addToCartLink,omitempty"`
 	Image                string       `json:"image"`
