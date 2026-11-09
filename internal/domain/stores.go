@@ -92,6 +92,16 @@ func Catalog() []StoreInfo {
 			EnabledByDef:  true,
 		},
 		{
+			ID:           "encombo",
+			Name:         "EnCombo",
+			Category:     CategorySupermercados,
+			Engine:       "magento",
+			BaseURL:      "https://encombo.com.ar",
+			SupportsEAN:  true,
+			BadgeColor:   "#9333ea",
+			EnabledByDef: true,
+		},
+		{
 			ID:           "super_mami",
 			Name:         "Super Mami",
 			Category:     CategorySupermercados,

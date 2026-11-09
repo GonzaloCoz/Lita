@@ -39,6 +39,7 @@ type Aggregator struct {
 	orderedStores []domain.StoreInfo
 	vtex          *providers.VTEXClient
 	cb            *providers.CompraBienClient
+	encombo       *providers.EnComboClient
 
 	mu       sync.RWMutex
 	cache    map[string]cacheEntry
@@ -59,6 +60,7 @@ func NewAggregator() *Aggregator {
 		orderedStores: cat,
 		vtex:          providers.NewVTEXClient(12 * time.Second),
 		cb:            providers.NewCompraBienClient(16 * time.Second),
+		encombo:       providers.NewEnComboClient(14 * time.Second),
 		cache:         make(map[string]cacheEntry),
 		cacheTTL:      5 * time.Minute,
 	}
@@ -267,7 +269,14 @@ func (a *Aggregator) Search(ctx context.Context, opts SearchOptions) domain.Sear
 			var src string
 			var err error
 
-			if isEAN {
+			if store.Engine == "magento" {
+				if isEAN {
+					prods, err = a.encombo.SearchEAN(ctx, q)
+				} else {
+					prods, err = a.encombo.SearchText(ctx, q)
+				}
+				src = "encombo_magento_rest"
+			} else if isEAN {
 				if opts.PreferDirect && store.Engine == "vtex" {
 					prods, err = a.vtex.SearchEAN(ctx, store, q, sel)
 					src = "vtex_direct"
