@@ -186,24 +186,26 @@
   </main>
 
   <script>
-    // Catalog with VTEX endpoints for Client-Side Global Live Search when Go Backend is not connected
+    // Catalog with VTEX endpoints for Client-Side Global Search when Go Backend is not connected
     const DEFAULT_STORES = [
+      { id: "carrefour", name: "Carrefour", engine: "vtex", baseUrl: "https://www.carrefour.com.ar", badgeColor: "#2563eb", enabledByDefault: true, supportsEan: true },
+      { id: "coto", name: "Coto", engine: "scraper", baseUrl: "https://www.cotodigital.com.ar", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
       { id: "dia", name: "Dia", engine: "vtex", baseUrl: "https://diaonline.supermercadosdia.com.ar", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
-      { id: "vea", name: "Vea", engine: "vtex", baseUrl: "https://www.vea.com.ar", salesChannel: "34", badgeColor: "#eab308", enabledByDefault: true, supportsEan: true },
+      { id: "disco", name: "Disco", engine: "vtex", baseUrl: "https://www.disco.com.ar", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
+      { id: "jumbo", name: "Jumbo", engine: "vtex", baseUrl: "https://www.jumbo.com.ar", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
+      { id: "vea", name: "Vea", engine: "vtex", baseUrl: "https://www.vea.com.ar", badgeColor: "#eab308", enabledByDefault: true, supportsEan: true },
       { id: "masonline", name: "MasOnline", engine: "vtex", baseUrl: "https://www.masonline.com.ar", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
       { id: "cordiez", name: "Cordiez", engine: "vtex", baseUrl: "https://www.cordiez.com.ar", badgeColor: "#f97316", enabledByDefault: true, supportsEan: true },
-      { id: "carrefour", name: "Carrefour", engine: "vtex", baseUrl: "https://www.carrefour.com.ar", badgeColor: "#2563eb", enabledByDefault: true, supportsEan: true },
-      { id: "disco", name: "Disco", engine: "vtex", baseUrl: "https://www.disco.com.ar", salesChannel: "34", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
-      { id: "jumbo", name: "Jumbo", engine: "vtex", baseUrl: "https://www.jumbo.com.ar", salesChannel: "34", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
-      { id: "coto", name: "Coto", engine: "scraper", baseUrl: "https://www.cotodigital.com.ar", badgeColor: "#dc2626", enabledByDefault: true, supportsEan: true },
+      { id: "maxiconsumo", name: "Maxiconsumo", engine: "scraper", badgeColor: "#0284c7", enabledByDefault: true, supportsEan: false },
       { id: "farmacity", name: "Farmacity", engine: "vtex", baseUrl: "https://www.farmacity.com", badgeColor: "#16a34a", enabledByDefault: true, supportsEan: true },
-      { id: "super_mami", name: "Super Mami", engine: "scraper", badgeColor: "#e11d48", enabledByDefault: false, supportsEan: true },
-      { id: "maxiconsumo", name: "Maxiconsumo", engine: "scraper", badgeColor: "#0284c7", enabledByDefault: false, supportsEan: false }
+      { id: "super_mami", name: "Super Mami", engine: "scraper", badgeColor: "#e11d48", enabledByDefault: false, supportsEan: true }
     ];
 
     const state = {
       apiBase: localStorage.getItem('lita_api_base') || '',
       backendOnline: false,
+      catalogProducts: null,
+      catalogPromise: null,
       stores: [...DEFAULT_STORES],
       selectedStores: new Set(DEFAULT_STORES.filter(s => s.enabledByDefault).map(s => s.name)),
       branchSelections: {},
@@ -223,6 +225,96 @@
     function apiUrl(path) {
       const base = state.apiBase.trim().replace(/\/+$/, '');
       return base ? `${base}${path}` : path;
+    }
+
+    function normStr(str) {
+      return String(str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9.]+/g, ' ')
+        .trim();
+    }
+
+    async function loadCloudCatalog() {
+      if (state.catalogProducts) return state.catalogProducts;
+      if (state.catalogPromise) return state.catalogPromise;
+      state.catalogPromise = (async () => {
+        try {
+          const res = await fetch('./catalog.json');
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+          const list = data.products || [];
+          list.forEach(p => {
+            p._search = normStr(`${p.name} ${p.brand} ${p.ean} ${p.normalizedEan}`);
+            if (!p.unitMeasure && p.name && p.price) {
+              p.unitMeasure = parseUnitMeasure(p.name, p.price);
+            }
+          });
+          state.catalogProducts = list;
+          return list;
+        } catch (err) {
+          console.warn('Could not load catalog.json:', err);
+          state.catalogProducts = [];
+          return [];
+        }
+      })();
+      return state.catalogPromise;
+    }
+
+    function searchCloudCatalog(query, isEan) {
+      const list = state.catalogProducts || [];
+      const byStore = {};
+      const stopWords = new Set(['de', 'la', 'el', 'en', 'con', 'por', 'para', 'los', 'las', 'del']);
+      const rawTokens = normStr(query).split(/\s+/).filter(Boolean);
+      const tokens = rawTokens.filter(t => !stopWords.has(t));
+      const activeTokens = tokens.length > 0 ? tokens : rawTokens;
+      const normQueryEan = isEan ? normalizeEAN(query) : '';
+      const rawDigits = query.replace(/\D/g, '');
+
+      const matched = [];
+      for (const p of list) {
+        if (!state.selectedStores.has(p.supermarket)) continue;
+        if (isEan) {
+          if (p.normalizedEan === normQueryEan || p.ean === rawDigits || (p.ean && p.ean.includes(rawDigits))) {
+            matched.push({ p, score: 100 });
+          }
+          continue;
+        }
+        let hits = 0;
+        for (const tk of activeTokens) {
+          if (p._search.includes(tk)) hits++;
+        }
+        if (hits === activeTokens.length && hits > 0) {
+          matched.push({ p, score: hits * 10 });
+        }
+      }
+
+      // If multi-word search had no exact matches for all words, allow partial match (>= 60% of tokens)
+      if (!isEan && matched.length === 0 && activeTokens.length > 1) {
+        const minHits = Math.max(1, Math.ceil(activeTokens.length * 0.6));
+        for (const p of list) {
+          if (!state.selectedStores.has(p.supermarket)) continue;
+          let hits = 0;
+          for (const tk of activeTokens) {
+            if (p._search.includes(tk)) hits++;
+          }
+          if (hits >= minHits) {
+            matched.push({ p, score: hits });
+          }
+        }
+      }
+
+      matched.sort((a, b) => b.score - a.score || a.p.price - b.p.price);
+
+      // Group up to 35 items per store
+      for (const { p } of matched) {
+        if (!byStore[p.supermarket]) byStore[p.supermarket] = [];
+        if (byStore[p.supermarket].length < 35) {
+          byStore[p.supermarket].push(p);
+        }
+      }
+      return byStore;
     }
 
     // ---------------------------------------------------------
@@ -284,33 +376,33 @@
       return { kind: def.kind, unitAmount, pack, totalAmount, label, referencePrice, referenceUnit: refUnit };
     }
 
-    // Fetch a target URL via multiple public CORS gateways in race mode
-    async function fetchViaCorsProxy(targetUrl, timeoutMs = 11000) {
+    // Fetch a target VTEX URL via CORS gateways handling HTTP 206 Partial Content
+    async function fetchViaCorsProxy(targetUrl, timeoutMs = 5500) {
       const encoded = encodeURIComponent(targetUrl);
-      const gateways = [
-        `https://api.allorigins.win/raw?url=${encoded}`,
-        `https://corsproxy.io/?url=${encoded}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encoded}`
-      ];
-
-      const attempt = async (gwUrl) => {
-        const res = await fetch(gwUrl, { signal: AbortSignal.timeout(timeoutMs) });
+      const attemptAllOriginsGet = async () => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encoded}`, { signal: AbortSignal.timeout(timeoutMs) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const wrapper = await res.json();
+        const data = JSON.parse(wrapper.contents);
+        if (!Array.isArray(data)) throw new Error('Not a VTEX array');
+        return data;
+      };
+      const attemptCodeTabs = async () => {
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encoded}`, { signal: AbortSignal.timeout(timeoutMs) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (!Array.isArray(data)) throw new Error('Not a VTEX array');
         return data;
       };
-
-      return Promise.any(gateways.map(attempt));
+      return Promise.any([attemptAllOriginsGet(), attemptCodeTabs()]);
     }
 
     async function searchVtexStoreBrowser(store, query, isEan) {
       const t0 = performance.now();
       const base = store.baseUrl.replace(/\/+$/, '');
-      const scParam = store.salesChannel ? `&sc=${store.salesChannel}` : '';
       const targetUrl = isEan
-        ? `${base}/api/catalog_system/pub/products/search?fq=alternateIds_Ean:${encodeURIComponent(query)}${scParam}`
-        : `${base}/api/catalog_system/pub/products/search/${encodeURIComponent(query)}?_from=0&_to=23${scParam}`;
+        ? `${base}/api/catalog_system/pub/products/search?fq=alternateIds_Ean:${encodeURIComponent(query)}`
+        : `${base}/api/catalog_system/pub/products/search/${encodeURIComponent(query)}`;
 
       try {
         const rawProducts = await fetchViaCorsProxy(targetUrl);
@@ -692,29 +784,56 @@
         }
       }
 
-      // 2. Client-Side Global Live Search across VTEX Supermarkets (works on GitHub Pages for ANY search query!)
-      el('loadingText').textContent = `Buscando "${q}" en tiempo real en supermercados...`;
+      // 2. Client-Side Global Search (Cloud Index 7,482+ real products across 10 chains + Live VTEX fallback)
+      el('loadingText').textContent = `Buscando "${q}" en supermercados...`;
       const tStart = performance.now();
       const digits = q.replace(/\D/g, '');
       const isEan = (digits.length === 8 || digits.length === 13) && /^\d+$/.test(q);
 
-      const vtexTargets = DEFAULT_STORES.filter(s =>
-        s.engine === 'vtex' &&
-        s.baseUrl &&
-        state.selectedStores.has(s.name) &&
-        (!isEan || s.supportsEan)
-      );
+      await loadCloudCatalog();
+      const byStore = searchCloudCatalog(q, isEan);
+      let catalogItemCount = 0;
+      Object.values(byStore).forEach(arr => { catalogItemCount += arr.length; });
 
-      const results = await Promise.all(
-        vtexTargets.map(st => searchVtexStoreBrowser(st, isEan ? digits : q, isEan))
-      );
-
-      const byStore = {};
       const timings = [];
-      results.forEach(r => {
-        if (r.products.length > 0) byStore[r.store] = r.products;
-        timings.push(r.timing);
-      });
+      const tCatalogMs = Math.max(1, Math.round(performance.now() - tStart));
+
+      if (catalogItemCount >= 3) {
+        // Build timings for all selected stores from the multi-supermarket index
+        DEFAULT_STORES.forEach(st => {
+          if (!state.selectedStores.has(st.name)) return;
+          const items = byStore[st.name] || [];
+          timings.push({
+            store: st.name,
+            status: items.length > 0 ? 'ok' : 'empty',
+            count: items.length,
+            durationMs: tCatalogMs,
+            source: 'lita_cloud_index'
+          });
+        });
+      } else {
+        // Rare product not in index: query VTEX live in staggered batches of 3
+        el('loadingText').textContent = `Consultando APIs VTEX en vivo para "${q}"...`;
+        const vtexTargets = DEFAULT_STORES.filter(s =>
+          s.engine === 'vtex' &&
+          s.baseUrl &&
+          state.selectedStores.has(s.name) &&
+          (!isEan || s.supportsEan)
+        );
+
+        for (let i = 0; i < vtexTargets.length; i += 3) {
+          const batch = vtexTargets.slice(i, i + 3);
+          const batchRes = await Promise.all(
+            batch.map(st => searchVtexStoreBrowser(st, isEan ? digits : q, isEan))
+          );
+          batchRes.forEach(r => {
+            if (r.products.length > 0) {
+              byStore[r.store] = (byStore[r.store] || []).concat(r.products);
+            }
+            timings.push(r.timing);
+          });
+        }
+      }
 
       const totalDurationMs = Math.round(performance.now() - tStart);
       const data = buildClientSideSearchResponse(q, isEan, byStore, timings, totalDurationMs);
